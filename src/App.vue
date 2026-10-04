@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MemoryCard from './components/MemoryCard.vue'
 import MemoryComposer from './components/MemoryComposer.vue'
+import MapView from './components/MapView.vue'
 import SettingsView from './components/SettingsView.vue'
 import { deleteMemory, deletePhotoIfUnused, getEntriesPage, getPhoto, getSettings, saveMemory, saveSettings, saveStoredPhoto } from './data/database'
 import { downloadBlob } from './data/export'
@@ -9,6 +10,7 @@ import type { AppSettings, MemoryEntry, StoredPhoto } from './data/types'
 
 type ViewName = 'wall' | 'map' | 'settings'
 const view = ref<ViewName>('wall')
+const mapMounted = ref(false)
 const entries = ref<MemoryEntry[]>([])
 const settings = ref<AppSettings>()
 const ready = ref(false)
@@ -61,6 +63,10 @@ watch(() => settings.value?.backgroundPhotoId, async (id) => {
   if (!photo || settings.value?.backgroundPhotoId !== id) return
   wallpaperObjectUrl = URL.createObjectURL(photo.thumbnail)
   wallpaperUrl.value = wallpaperObjectUrl
+})
+
+watch(view, (current) => {
+  if (current === 'map') mapMounted.value = true
 })
 
 onBeforeUnmount(() => {
@@ -323,7 +329,7 @@ function cardStyle(index: number) {
       </div>
     </main>
 
-    <main v-if="view === 'map'" class="placeholder-view"><span>⌖</span><h2>记忆地图</h2><p>每个地方，都藏着一段日子。</p><small>地图即将展开</small></main>
+    <MapView v-if="mapMounted && settings" v-show="view === 'map'" :settings="settings" />
     <SettingsView v-if="view === 'settings' && settings" :settings="settings" @change="updateSettings" @background="updateBackground" @restored="afterRestore" />
 
     <footer class="app-footer"><span>Made for the moments you want to keep</span><span>你的生活，只在你的设备里。</span></footer>
