@@ -66,6 +66,15 @@ const timeLabel = computed(() => {
 const minLabel = computed(() => new Intl.DateTimeFormat('zh-CN', { year: '2-digit', month: '2-digit' }).format(minTime.value))
 const maxLabel = computed(() => new Intl.DateTimeFormat('zh-CN', { year: '2-digit', month: '2-digit' }).format(maxTime.value))
 const locationlessMatches = computed(() => localSearchResults.value.filter(({ entry }) => !entry.location).length)
+const rangeTrackStyle = computed(() => {
+  const span = Math.max(usableMaxTime.value - minTime.value, 1)
+  const low = Math.max(minTime.value, Math.min(rangeStart.value, rangeEnd.value))
+  const high = Math.min(usableMaxTime.value, Math.max(rangeStart.value, rangeEnd.value))
+  return {
+    '--range-start': `${((low - minTime.value) / span) * 100}%`,
+    '--range-size': `${((high - low) / span) * 100}%`,
+  }
+})
 
 watch(visibleMemories, (items) => {
   if (updateFrame) cancelAnimationFrame(updateFrame)
@@ -174,6 +183,14 @@ function clearSearch() {
   searchText.value = ''
   searchOpen.value = false
 }
+
+function updateRangeStart(event: Event) {
+  rangeStart.value = Math.min(Number((event.target as HTMLInputElement).value), rangeEnd.value)
+}
+
+function updateRangeEnd(event: Event) {
+  rangeEnd.value = Math.max(Number((event.target as HTMLInputElement).value), rangeStart.value)
+}
 </script>
 
 <template>
@@ -239,9 +256,9 @@ function clearSearch() {
     <div class="map-empty-note map-no-location" v-else-if="!loading && !visibleMemories.length && !mapError"><span><IconGlyph name="pin" :size="19" /></span><strong>这个时间里没有带位置的记忆</strong><small>没有坐标的记忆依然会留在时间墙。</small></div>
 
     <section class="map-timeline glass-card">
-      <div class="timeline-topline"><div><small>沿着时间回望</small><strong>{{ timeLabel }}</strong></div><button type="button" @click="timelineMode = timelineMode === 'moment' ? 'range' : 'moment'">{{ timelineMode === 'moment' ? '选择范围' : '单日回看' }}</button></div>
+      <div class="timeline-topline"><div><small>沿着时间回望</small><strong>{{ timeLabel }}</strong></div><button type="button" @click="timelineMode = timelineMode === 'moment' ? 'range' : 'moment'">{{ timelineMode === 'moment' ? '选择范围' : '选择日期' }}</button></div>
       <div v-if="timelineMode === 'moment'" class="timeline-slider"><span>{{ minLabel }}</span><input v-model.number="selectedTime" type="range" :min="minTime" :max="usableMaxTime" :step="86400000" /><span>{{ maxLabel }}</span></div>
-      <div v-else class="timeline-slider timeline-range-slider"><span>{{ minLabel }}</span><input v-model.number="rangeStart" type="range" :min="minTime" :max="usableMaxTime" :step="86400000" /><input v-model.number="rangeEnd" type="range" :min="minTime" :max="usableMaxTime" :step="86400000" /><span>{{ maxLabel }}</span></div>
+      <div v-else class="timeline-slider timeline-range-slider"><span>{{ minLabel }}</span><div class="range-dual-track" :style="rangeTrackStyle"><input :value="rangeStart" type="range" :min="minTime" :max="usableMaxTime" :step="86400000" aria-label="范围起始日期" @input="updateRangeStart" /><input :value="rangeEnd" type="range" :min="minTime" :max="usableMaxTime" :step="86400000" aria-label="范围结束日期" @input="updateRangeEnd" /></div><span>{{ maxLabel }}</span></div>
       <div class="timeline-legend"><span><i class="legend-dot"></i>{{ visibleMemories.length }} 段记忆</span><span v-if="noLocationCount">{{ noLocationCount }} 段没有位置</span></div>
     </section>
   </main>

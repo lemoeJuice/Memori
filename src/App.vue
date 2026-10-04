@@ -280,7 +280,7 @@ function cardStyle(index: number) {
     <div v-if="wallpaperUrl" class="wallpaper-layer" :style="{ backgroundImage: `linear-gradient(rgb(237 244 244 / var(--background-dim)), rgb(237 244 244 / var(--background-dim))), url(${wallpaperUrl})` }" aria-hidden="true"></div>
     <header class="app-header">
       <a class="brand" href="#wall" @click.prevent="view = 'wall'">
-        <span class="brand-mark"><IconGlyph name="memory" :size="23" /></span>
+        <span class="brand-mark"><img src="/icons/icon-192.png" alt="" /></span>
         <span><strong>memori</strong><small>life, softly remembered</small></span>
       </a>
       <nav class="main-nav" aria-label="主要导航">

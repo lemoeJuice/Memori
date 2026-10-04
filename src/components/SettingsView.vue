@@ -183,7 +183,7 @@ function formatBytes(bytes: number): string {
     <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="database" :size="17" /></span><div><h2>你的数据</h2><p>记忆与照片都留在本地，不会上传到云端。</p></div></div>
       <p class="settings-privacy"><span aria-hidden="true">◉</span> Memori 是本地优先应用。你的记忆属于你，也只属于你。</p>
-      <div class="storage-summary"><span class="storage-symbol"><IconGlyph name="archive" :size="16" /></span><span><strong>{{ entryCount }} 段记忆</strong><small>设备存储占用 · {{ usageText }}</small></span><button class="text-button" type="button" @click="refreshUsage">刷新</button></div>
+      <div class="storage-summary"><span class="storage-symbol"><IconGlyph name="archive" :size="16" /></span><span><strong>{{ entryCount }} 段记忆</strong><small>设备存储占用 · {{ usageText }}</small></span><button class="soft-button refresh-button" type="button" @click="refreshUsage">刷新</button></div>
       <div class="backup-actions"><button class="soft-button primary-soft" :disabled="!!busy" @click="exportData">导出全部记忆</button><button class="soft-button" :disabled="!!busy" @click="confirmRestore">从备份恢复</button><input ref="restorePicker" class="visually-hidden" type="file" accept=".zip,application/zip" @change="restoreData" /></div>
       <div v-if="restoreArmed" class="restore-confirm"><span>恢复会替换此设备上的记录和设置。</span><button class="text-button" @click="restoreArmed = false">取消</button><button class="soft-button" @click="restorePicker?.click()">选择备份文件</button></div>
       <p v-else class="backup-hint">备份包含 JSON 记录与相关照片。恢复操作会替换此设备上的现有数据。</p>
