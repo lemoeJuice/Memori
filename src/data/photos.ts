@@ -1,4 +1,5 @@
 import { readExifLocation } from './location'
+import * as exifr from 'exifr'
 import type { AppSettings, PhotoInput } from './types'
 
 export async function preparePhoto(file: File, settings: AppSettings): Promise<PhotoInput> {
@@ -14,7 +15,7 @@ export async function preparePhoto(file: File, settings: AppSettings): Promise<P
     const context = canvas.getContext('2d')
     if (!context) throw new Error('无法处理这张照片')
     context.drawImage(bitmap, 0, 0, width, height)
-    const original = await canvasBlob(canvas, 'image/webp', settings.imageQuality / 100)
+    const optimized = await canvasBlob(canvas, 'image/webp', settings.imageQuality / 100)
     const thumbnailCanvas = document.createElement('canvas')
     const thumbnailScale = Math.min(1, 640 / Math.max(width, height))
     thumbnailCanvas.width = Math.max(1, Math.round(width * thumbnailScale))
@@ -26,7 +27,7 @@ export async function preparePhoto(file: File, settings: AppSettings): Promise<P
     return {
       file,
       thumbnail,
-      original: settings.preserveOriginal ? original : undefined,
+      original: settings.preserveOriginal ? file.slice(0, file.size, file.type) : optimized,
       width,
       height,
       exifLocation: exif,
@@ -43,7 +44,6 @@ function canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number): P
 
 async function readExifDate(file: File): Promise<number | undefined> {
   try {
-    const exifr = await import('exifr')
     const data = await exifr.parse(file, ['DateTimeOriginal', 'CreateDate'])
     const date = data?.DateTimeOriginal ?? data?.CreateDate
     return date instanceof Date && !Number.isNaN(date.getTime()) ? date.getTime() : undefined

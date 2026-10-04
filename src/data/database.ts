@@ -89,8 +89,15 @@ export async function getEntry(id: string): Promise<MemoryEntry | undefined> {
 export async function saveMemory(entry: MemoryEntry, photo?: StoredPhoto): Promise<void> {
   const db = await openDatabase()
   const tx = db.transaction([ENTRY_STORE, PHOTO_STORE], 'readwrite')
-  if (photo) tx.objectStore(PHOTO_STORE).put(photo)
-  tx.objectStore(ENTRY_STORE).put(entry)
+  const entries = tx.objectStore(ENTRY_STORE)
+  const photos = tx.objectStore(PHOTO_STORE)
+  const previous = await requestResult(entries.get(entry.id)) as MemoryEntry | undefined
+  if (photo) photos.put(photo)
+  entries.put(entry)
+  if (previous?.photo && previous.photo.id !== entry.photo?.id) {
+    const all = await requestResult(entries.getAll()) as MemoryEntry[]
+    if (!all.some((item) => item.id !== entry.id && item.photo?.id === previous.photo?.id)) photos.delete(previous.photo.id)
+  }
   await transactionDone(tx)
 }
 
