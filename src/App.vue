@@ -340,6 +340,7 @@ function cardStyle(index: number) {
         </template>
         <div v-if="!ready" class="wall-loading"><span class="loading-orbit"></span>正在拾起你的记忆…</div>
         <div v-else-if="!entries.length" class="empty-note">这里还很安静。<br />给生活留一个柔软的开始吧。</div>
+        <footer class="wall-endnote"><IconGlyph name="sparkle" :size="12" /> 慢慢生活，慢慢记起 <IconGlyph name="sparkle" :size="12" /></footer>
       </div>
     </main>
 
