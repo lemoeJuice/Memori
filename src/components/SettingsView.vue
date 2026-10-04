@@ -188,6 +188,9 @@ function formatBytes(bytes: number): string {
     </section>
 
     <div class="settings-feedback" aria-live="polite">{{ busy || feedback }}</div>
-    <p class="settings-privacy"><IconGlyph name="privacy" :size="13" /> Memori 是本地优先应用。你的记忆属于你，也只属于你。</p>
+    <footer class="settings-footer settings-section glass-card">
+      <small>Made for the moments you want to keep</small>
+      <p>把日常轻轻收好，让想起的时刻有处可寻。</p>
+    </footer>
   </main>
 </template>
