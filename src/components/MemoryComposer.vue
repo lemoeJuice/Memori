@@ -4,6 +4,7 @@ import { getPhoto } from '../data/database'
 import { getCurrentLocation } from '../data/location'
 import { preparePhoto } from '../data/photos'
 import type { AppSettings, GeoPoint, MemoryEntry, PhotoInput, StoredPhoto } from '../data/types'
+import IconGlyph from './IconGlyph.vue'
 
 const props = defineProps<{ settings: AppSettings; existing?: MemoryEntry; saving?: boolean }>()
 const emit = defineEmits<{
@@ -126,13 +127,13 @@ function save() {
   <article class="composer-card glass-card">
     <div class="composer-topline">
       <span>{{ existing ? '编辑这段记忆' : '此刻' }}</span>
-      <button class="icon-button quiet-button" type="button" aria-label="收起编辑" @click="emit('cancel')">×</button>
+      <button class="icon-button quiet-button" type="button" aria-label="收起编辑" @click="emit('cancel')"><IconGlyph name="close" :size="15" /></button>
     </div>
     <p class="composer-time">{{ formattedTime }}</p>
     <div class="composer-photo" :class="{ 'composer-photo--filled': previewUrl }">
       <img v-if="previewUrl" :src="previewUrl" alt="照片预览" />
       <button v-else class="photo-prompt" type="button" :disabled="photoBusy" @click="picker?.click()">
-        <span class="photo-plus">{{ photoBusy ? '…' : '+' }}</span>
+        <span class="photo-plus"><IconGlyph :name="photoBusy ? 'sparkle' : 'image'" :size="19" /></span>
         <span>{{ photoBusy ? '正在准备照片' : '留一张照片' }}</span>
       </button>
       <div v-if="previewUrl" class="photo-tools">
@@ -141,7 +142,7 @@ function save() {
       </div>
     </div>
     <input ref="picker" class="visually-hidden" type="file" accept="image/*" @change="choosePhoto" />
-    <div class="location-line"><span class="location-icon">⌖</span><span>{{ locationStatus }}</span><span v-if="location?.source === 'exif'" class="source-note">来自照片</span></div>
+    <div class="location-line"><span class="location-icon"><IconGlyph name="pin" :size="15" /></span><span>{{ locationStatus }}</span><span v-if="location?.source === 'exif'" class="source-note">来自照片</span></div>
     <label class="editor-label">
       <span>地点</span>
       <input v-model="placeLabel" type="text" maxlength="100" placeholder="给这个地方起个名字 · 可选" />
@@ -152,7 +153,7 @@ function save() {
     </label>
     <div class="composer-footer">
       <span class="optional-note">时间和地点之外，其余都可以留白</span>
-      <button class="save-button" type="button" :disabled="isSaving || photoBusy" @click="save">{{ isSaving ? '正在保存…' : '保存记忆' }} <span v-if="!isSaving">↗</span></button>
+      <button class="save-button" type="button" :disabled="isSaving || photoBusy" @click="save">{{ isSaving ? '正在保存…' : '保存记忆' }} <IconGlyph v-if="!isSaving" name="arrow-up-right" :size="13" /></button>
     </div>
   </article>
 </template>

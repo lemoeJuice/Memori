@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { getAllEntries, getPhoto } from '../data/database'
 import type { AppSettings, MemoryEntry } from '../data/types'
+import IconGlyph from './IconGlyph.vue'
 import { AmapProvider } from '../map/amap-provider'
 import type { MapMemory, MapProvider } from '../map/map-provider'
 
@@ -180,25 +181,25 @@ function clearSearch() {
     <div ref="mapElement" class="map-canvas" aria-label="记忆地图"></div>
     <div class="map-wash" aria-hidden="true"></div>
     <div class="map-map-error" v-if="mapError">
-      <span class="map-error-symbol">⌖</span>
+      <span class="map-error-symbol"><IconGlyph name="pin" :size="22" /></span>
       <strong>{{ mapError.includes('VITE_AMAP_KEY') ? '为记忆地图接入一张底图' : '地图暂时没有展开' }}</strong>
       <p>{{ mapError.includes('VITE_AMAP_KEY') ? '地图服务需要一个高德 Web JS API Key。你仍可以在上方搜索自己的记录。' : mapError }}</p>
       <button v-if="!mapError.includes('VITE_AMAP_KEY')" type="button" @click="initializeMap">再试一次</button>
     </div>
 
     <div class="map-overlay map-search-area">
-      <button v-if="!searchOpen" class="map-search-icon glass-card" type="button" aria-label="搜索记忆" @click="searchOpen = true; nextTick(() => searchInput?.focus())">⌕</button>
+      <button v-if="!searchOpen" class="map-search-icon glass-card" type="button" aria-label="搜索记忆" @click="searchOpen = true; nextTick(() => searchInput?.focus())"><IconGlyph name="search" :size="20" /></button>
       <div v-else class="map-search-box glass-card">
-        <span>⌕</span>
+        <span><IconGlyph name="search" :size="17" /></span>
         <input ref="searchInput" v-model="searchText" type="search" placeholder="搜索地点、文字、日期…" @keydown.esc="clearSearch" />
-        <button type="button" aria-label="关闭搜索" @click="clearSearch">×</button>
+        <button type="button" aria-label="关闭搜索" @click="clearSearch"><IconGlyph name="close" :size="13" /></button>
       </div>
       <div v-if="searchOpen && searchText.trim()" class="map-search-results glass-card">
         <button v-for="memory in localSearchResults" :key="memory.entry.id" class="search-result-row" type="button" @click="selectSearchResult(memory)">
           <img v-if="memory.thumbnailUrl" :src="memory.thumbnailUrl" alt="" />
-          <span v-else class="search-result-placeholder">⌖</span>
+          <span v-else class="search-result-placeholder"><IconGlyph name="pin" :size="16" /></span>
           <span class="search-result-copy"><strong>{{ memory.entry.placeLabel || memory.entry.text || '一段记忆' }}</strong><small>{{ formatDate(memory.entry.createdAt) }}<i v-if="!memory.entry.location"> · 无位置</i></small></span>
-          <span v-if="memory.entry.location" class="result-location">⌖</span>
+          <span v-if="memory.entry.location" class="result-location"><IconGlyph name="pin" :size="13" /></span>
         </button>
         <p v-if="!localSearchResults.length" class="no-search-results">还没有找到这段记忆。</p>
         <p v-else-if="locationlessMatches" class="search-footnote">{{ locationlessMatches }} 段记忆没有位置，无法标在地图上。</p>
@@ -209,7 +210,7 @@ function clearSearch() {
 
     <Transition name="map-panel">
       <article v-if="selectedMemory" class="map-memory-panel glass-card">
-        <button class="map-panel-close" type="button" aria-label="关闭记忆" @click="selectedMemory = undefined">×</button>
+        <button class="map-panel-close" type="button" aria-label="关闭记忆" @click="selectedMemory = undefined"><IconGlyph name="close" :size="14" /></button>
         <img v-if="selectedMemory.thumbnailUrl" class="map-panel-photo" :src="selectedMemory.thumbnailUrl" alt="记忆照片" />
         <div class="map-panel-content">
           <small>{{ formatDate(selectedMemory.entry.createdAt) }}</small>
@@ -222,18 +223,18 @@ function clearSearch() {
 
     <Transition name="map-panel">
       <section v-if="selectedCluster.length" class="map-cluster-panel glass-card">
-        <div class="cluster-heading"><div><small>这个地方</small><h3>{{ selectedCluster.length }} 段记忆</h3></div><button class="map-panel-close" type="button" aria-label="关闭列表" @click="selectedCluster = []">×</button></div>
+        <div class="cluster-heading"><div><small>这个地方</small><h3>{{ selectedCluster.length }} 段记忆</h3></div><button class="map-panel-close" type="button" aria-label="关闭列表" @click="selectedCluster = []"><IconGlyph name="close" :size="14" /></button></div>
         <button v-for="memory in [...selectedCluster].sort((a, b) => b.entry.createdAt - a.entry.createdAt)" :key="memory.entry.id" class="cluster-memory-row" type="button" @click="chooseClusterItem(memory)">
           <img v-if="memory.thumbnailUrl" :src="memory.thumbnailUrl" alt="" />
-          <span v-else class="cluster-photo-empty">✳</span>
+          <span v-else class="cluster-photo-empty"><IconGlyph name="sparkle" :size="15" /></span>
           <span><strong>{{ memory.entry.placeLabel || memory.entry.text || '一段生活' }}</strong><small>{{ formatDate(memory.entry.createdAt) }}</small></span>
-          <i>›</i>
+          <i><IconGlyph name="chevron-right" :size="14" /></i>
         </button>
       </section>
     </Transition>
 
-    <div class="map-empty-note" v-if="!loading && !allEntries.length && !mapError"><span>⌖</span><strong>地图还在等第一段记忆</strong><small>带有位置的记忆，会在这里慢慢亮起来。</small></div>
-    <div class="map-empty-note map-no-location" v-else-if="!loading && !visibleMemories.length && !mapError"><span>◌</span><strong>这个时间里没有带位置的记忆</strong><small>没有坐标的记忆依然会留在时间墙。</small></div>
+    <div class="map-empty-note" v-if="!loading && !allEntries.length && !mapError"><span><IconGlyph name="map" :size="21" /></span><strong>地图还在等第一段记忆</strong><small>带有位置的记忆，会在这里慢慢亮起来。</small></div>
+    <div class="map-empty-note map-no-location" v-else-if="!loading && !visibleMemories.length && !mapError"><span><IconGlyph name="pin" :size="19" /></span><strong>这个时间里没有带位置的记忆</strong><small>没有坐标的记忆依然会留在时间墙。</small></div>
 
     <section class="map-timeline glass-card">
       <div class="timeline-topline"><div><small>沿着时间回望</small><strong>{{ timeLabel }}</strong></div><button type="button" @click="timelineMode = timelineMode === 'moment' ? 'range' : 'moment'">{{ timelineMode === 'moment' ? '选择范围' : '单日回看' }}</button></div>

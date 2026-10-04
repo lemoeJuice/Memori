@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getPhoto } from '../data/database'
+import IconGlyph from './IconGlyph.vue'
 import type { MemoryEntry } from '../data/types'
 
 const props = defineProps<{ entry: MemoryEntry; isEditing?: boolean }>()
@@ -34,10 +35,10 @@ onBeforeUnmount(() => { if (photoUrl.value) URL.revokeObjectURL(photoUrl.value) 
   <article class="memory-card glass-card" :class="{ 'memory-card--expanded': expanded }">
     <button class="memory-card__body" type="button" :aria-expanded="expanded" @click="expanded = !expanded">
       <img v-if="photoUrl" class="memory-card__photo" :src="photoUrl" alt="记忆照片" loading="lazy" />
-      <div v-else class="memory-card__no-photo" aria-hidden="true"><span>✳</span></div>
+      <div v-else class="memory-card__no-photo" aria-hidden="true"><span><IconGlyph name="sparkle" :size="18" /></span></div>
       <div class="memory-card__copy">
         <div class="memory-card__meta">
-          <span v-if="entry.location" class="location-mark">⌖</span>
+          <span v-if="entry.location" class="location-mark"><IconGlyph name="pin" :size="13" /></span>
           <span v-if="entry.placeLabel" class="memory-card__place">{{ entry.placeLabel }}</span>
           <span v-else-if="entry.location" class="memory-card__place">一点生活</span>
           <span v-else class="memory-card__place">一段记忆</span>
@@ -45,7 +46,7 @@ onBeforeUnmount(() => { if (photoUrl.value) URL.revokeObjectURL(photoUrl.value) 
         </div>
         <p v-if="entry.text" class="memory-card__text">{{ entry.text }}</p>
       </div>
-      <span v-if="entry.favorite" class="favorite-mark" aria-label="已收藏">♥</span>
+      <span v-if="entry.favorite" class="favorite-mark" aria-label="已收藏"><IconGlyph name="heart" :size="13" /></span>
     </button>
     <div v-if="expanded" class="memory-card__actions" @click.stop>
       <template v-if="!confirmDelete">

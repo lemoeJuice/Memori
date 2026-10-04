@@ -4,6 +4,7 @@ import { getAllEntries, getPhoto } from '../data/database'
 import { downloadBlob, exportBackup, importBackup } from '../data/export'
 import { preparePhoto } from '../data/photos'
 import type { AppSettings, StoredPhoto } from '../data/types'
+import IconGlyph from './IconGlyph.vue'
 
 const props = defineProps<{ settings: AppSettings }>()
 const emit = defineEmits<{
@@ -139,11 +140,11 @@ function formatBytes(bytes: number): string {
   <main class="settings-view">
     <div class="settings-heading">
       <div><p class="eyebrow">A LITTLE SPACE OF YOUR OWN</p><h1>让这里更像你。</h1><p>安静地记录，也安心地保存。</p></div>
-      <div class="settings-head-mark">☼</div>
+      <div class="settings-head-mark"><IconGlyph name="settings" :size="22" /></div>
     </div>
 
     <section class="settings-section glass-card">
-      <div class="settings-section-title"><span class="settings-icon">☼</span><div><h2>记忆墙的样子</h2><p>选一张喜欢的背景，调出柔和的质感。</p></div></div>
+      <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>记忆墙的样子</h2><p>选一张喜欢的背景，调出柔和的质感。</p></div></div>
       <div class="setting-row setting-background-row">
         <div class="setting-copy"><strong>背景图片</strong><small>只保存在此设备</small></div>
         <div class="background-actions">
@@ -161,7 +162,7 @@ function formatBytes(bytes: number): string {
     </section>
 
     <section class="settings-section glass-card">
-      <div class="settings-section-title"><span class="settings-icon">▧</span><div><h2>照片与位置</h2><p>让照片和地点一起，帮你记起那一天。</p></div></div>
+      <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="image" :size="17" /></span><div><h2>照片与位置</h2><p>让照片和地点一起，帮你记起那一天。</p></div></div>
       <label class="setting-row range-row"><span class="setting-copy"><strong>照片压缩质量</strong><small>较低体积，更省本地空间</small></span><span class="range-control"><input v-model.number="draft.imageQuality" type="range" min="45" max="100" step="1" @change="persist" /><output>{{ draft.imageQuality }}%</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>照片最长边</strong><small>首页优先使用轻量缩略图</small></span><span class="range-control"><input v-model.number="draft.maxImageDimension" type="range" min="1200" max="4000" step="200" @change="persist" /><output>{{ draft.maxImageDimension }} px</output></span></label>
       <label class="setting-row"><span class="setting-copy"><strong>保留原始照片</strong><small>保留完整原图，可占用更多空间</small></span><input class="toggle-input" v-model="draft.preserveOriginal" type="checkbox" @change="persist" /></label>
@@ -173,14 +174,14 @@ function formatBytes(bytes: number): string {
     </section>
 
     <section class="settings-section glass-card">
-      <div class="settings-section-title"><span class="settings-icon">↟</span><div><h2>你的数据</h2><p>记忆与照片都留在本地，不会上传到云端。</p></div></div>
-      <div class="storage-summary"><span class="storage-symbol">▤</span><span><strong>{{ entryCount }} 段记忆</strong><small>设备存储占用 · {{ usageText }}</small></span><button class="text-button" type="button" @click="refreshUsage">刷新</button></div>
+      <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="database" :size="17" /></span><div><h2>你的数据</h2><p>记忆与照片都留在本地，不会上传到云端。</p></div></div>
+      <div class="storage-summary"><span class="storage-symbol"><IconGlyph name="archive" :size="16" /></span><span><strong>{{ entryCount }} 段记忆</strong><small>设备存储占用 · {{ usageText }}</small></span><button class="text-button" type="button" @click="refreshUsage">刷新</button></div>
       <div class="backup-actions"><button class="soft-button primary-soft" :disabled="!!busy" @click="exportData">导出全部记忆</button><button class="soft-button" :disabled="!!busy" @click="confirmRestore">从备份恢复</button><input ref="restorePicker" class="visually-hidden" type="file" accept=".zip,application/zip" @change="restoreData" /></div>
       <div v-if="restoreArmed" class="restore-confirm"><span>恢复会替换此设备上的记录和设置。</span><button class="text-button" @click="restoreArmed = false">取消</button><button class="soft-button" @click="restorePicker?.click()">选择备份文件</button></div>
       <p v-else class="backup-hint">备份包含 JSON 记录与相关照片。恢复操作会替换此设备上的现有数据。</p>
     </section>
 
     <div class="settings-feedback" aria-live="polite">{{ busy || feedback }}</div>
-    <p class="settings-privacy"><span>◉</span> Memori 是本地优先应用。你的记忆属于你，也只属于你。</p>
+    <p class="settings-privacy"><IconGlyph name="privacy" :size="13" /> Memori 是本地优先应用。你的记忆属于你，也只属于你。</p>
   </main>
 </template>

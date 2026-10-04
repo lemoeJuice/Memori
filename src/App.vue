@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MemoryCard from './components/MemoryCard.vue'
 import MemoryComposer from './components/MemoryComposer.vue'
+import IconGlyph from './components/IconGlyph.vue'
 import MapView from './components/MapView.vue'
 import SettingsView from './components/SettingsView.vue'
 import { deleteMemory, deletePhotoIfUnused, getEntriesPage, getPhoto, getSettings, saveMemory, saveSettings, saveStoredPhoto } from './data/database'
@@ -260,7 +261,7 @@ function cardStyle(index: number) {
     <div v-if="wallpaperUrl" class="wallpaper-layer" :style="{ backgroundImage: `linear-gradient(rgb(237 244 244 / var(--background-dim)), rgb(237 244 244 / var(--background-dim))), url(${wallpaperUrl})` }" aria-hidden="true"></div>
     <header class="app-header">
       <a class="brand" href="#wall" @click.prevent="view = 'wall'">
-        <span class="brand-mark">m</span>
+        <span class="brand-mark"><IconGlyph name="memory" :size="23" /></span>
         <span><strong>memori</strong><small>life, softly remembered</small></span>
       </a>
       <nav class="main-nav" aria-label="主要导航">
@@ -268,7 +269,7 @@ function cardStyle(index: number) {
         <button :class="{ active: view === 'map' }" @click="view = 'map'">记忆地图</button>
         <button :class="{ active: view === 'settings' }" @click="view = 'settings'">设置</button>
       </nav>
-      <div class="header-side"><button class="avatar-button" aria-label="打开设置" @click="view = 'settings'">☼</button></div>
+      <div class="header-side"><div class="today-note"><span class="today-sparkle"><IconGlyph name="sparkle" :size="17" /></span><span><small>今天</small><strong>{{ new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(Date.now()) }}</strong></span></div></div>
     </header>
 
     <main v-show="view === 'wall'" class="wall-view">
@@ -278,7 +279,6 @@ function cardStyle(index: number) {
           <h1>日子有痕，<em>记忆有处。</em></h1>
           <p class="intro-copy">每个时刻都值得被轻轻收好。</p>
         </div>
-        <div class="today-note"><span class="today-sparkle">✳</span><span><small>今天</small><strong>{{ new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(Date.now()) }}</strong></span></div>
       </div>
 
       <div ref="wallScroller" class="wall-scroller">
@@ -323,7 +323,7 @@ function cardStyle(index: number) {
                 type="button"
                 @click="composerOpen = true"
               >
-                <span class="new-memory-plus">+</span>
+                <span class="new-memory-plus"><IconGlyph name="plus" :size="20" /></span>
                 <strong>留下一段记忆</strong>
                 <small>此刻，或任何你想记住的时刻</small>
               </button>
@@ -332,7 +332,7 @@ function cardStyle(index: number) {
         </template>
         <div v-if="!ready" class="wall-loading"><span class="loading-orbit"></span>正在拾起你的记忆…</div>
         <div v-else-if="!entries.length" class="empty-note">这里还很安静。<br />给生活留一个柔软的开始吧。</div>
-        <footer class="wall-endnote"><span>✳</span> 慢慢生活，慢慢记起 <span>✳</span></footer>
+        <footer class="wall-endnote"><IconGlyph name="sparkle" :size="12" /> 慢慢生活，慢慢记起 <IconGlyph name="sparkle" :size="12" /></footer>
       </div>
     </main>
 
@@ -343,9 +343,9 @@ function cardStyle(index: number) {
     <Transition name="toast"><div v-if="notice" class="toast-message">{{ notice }}</div></Transition>
     <div v-if="notice && !ready" class="startup-error">{{ notice }}</div>
     <nav class="mobile-nav" aria-label="底部导航">
-      <button :class="{ active: view === 'wall' }" @click="view = 'wall'"><span>▦</span>记忆墙</button>
-      <button :class="{ active: view === 'map' }" @click="view = 'map'"><span>⌖</span>地图</button>
-      <button :class="{ active: view === 'settings' }" @click="view = 'settings'"><span>☼</span>设置</button>
+      <button :class="{ active: view === 'wall' }" @click="view = 'wall'"><IconGlyph name="wall" :size="17" />记忆墙</button>
+      <button :class="{ active: view === 'map' }" @click="view = 'map'"><IconGlyph name="map" :size="17" />地图</button>
+      <button :class="{ active: view === 'settings' }" @click="view = 'settings'"><IconGlyph name="settings" :size="17" />设置</button>
     </nav>
   </div>
 </template>
