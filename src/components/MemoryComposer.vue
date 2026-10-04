@@ -5,7 +5,7 @@ import { getCurrentLocation } from '../data/location'
 import { preparePhoto } from '../data/photos'
 import type { AppSettings, GeoPoint, MemoryEntry, PhotoInput, StoredPhoto } from '../data/types'
 
-const props = defineProps<{ settings: AppSettings; existing?: MemoryEntry }>()
+const props = defineProps<{ settings: AppSettings; existing?: MemoryEntry; saving?: boolean }>()
 const emit = defineEmits<{
   save: [entry: MemoryEntry, photo?: StoredPhoto]
   cancel: []
@@ -19,8 +19,8 @@ const text = ref(props.existing?.text ?? '')
 const location = ref<GeoPoint | undefined>(props.existing?.location)
 const locationStatus = ref(props.existing?.location ? '已记录位置' : '定位中…')
 const photoBusy = ref(false)
-const saving = ref(false)
 const createdAt = props.existing?.createdAt ?? Date.now()
+const isSaving = computed(() => props.saving ?? false)
 const formattedTime = computed(() => new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(createdAt))
 let locationRequestToken = 0
 
@@ -95,8 +95,7 @@ async function requestCurrentLocation(token = ++locationRequestToken) {
 }
 
 function save() {
-  if (saving.value) return
-  saving.value = true
+  if (props.saving || photoBusy.value) return
   const id = props.existing?.id ?? crypto.randomUUID()
   const photoId = photoInput.value ? crypto.randomUUID() : (props.existing?.photo && previewUrl.value ? props.existing.photo.id : undefined)
   const entry: MemoryEntry = {
@@ -153,7 +152,7 @@ function save() {
     </label>
     <div class="composer-footer">
       <span class="optional-note">时间和地点之外，其余都可以留白</span>
-      <button class="save-button" type="button" :disabled="saving || photoBusy" @click="save">保存记忆 <span>↗</span></button>
+      <button class="save-button" type="button" :disabled="isSaving || photoBusy" @click="save">{{ isSaving ? '正在保存…' : '保存记忆' }} <span v-if="!isSaving">↗</span></button>
     </div>
   </article>
 </template>

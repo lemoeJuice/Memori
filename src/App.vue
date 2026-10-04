@@ -15,6 +15,7 @@ const entries = ref<MemoryEntry[]>([])
 const settings = ref<AppSettings>()
 const ready = ref(false)
 const composerOpen = ref(false)
+const savingMemory = ref(false)
 const editingId = ref<string>()
 const wallScroller = ref<HTMLElement>()
 const historySentinel = ref<HTMLElement>()
@@ -118,6 +119,8 @@ async function loadOlder() {
 }
 
 async function saveEntry(entry: MemoryEntry, photo?: StoredPhoto) {
+  if (savingMemory.value) return
+  savingMemory.value = true
   try {
     await saveMemory(entry, photo)
     const existing = entries.value.findIndex((item) => item.id === entry.id)
@@ -129,6 +132,8 @@ async function saveEntry(entry: MemoryEntry, photo?: StoredPhoto) {
     window.setTimeout(() => { notice.value = '' }, 2600)
   } catch (error) {
     notice.value = error instanceof Error ? error.message : '保存失败，请稍后重试。'
+  } finally {
+    savingMemory.value = false
   }
 }
 
@@ -263,7 +268,7 @@ function cardStyle(index: number) {
         <button :class="{ active: view === 'map' }" @click="view = 'map'">记忆地图</button>
         <button :class="{ active: view === 'settings' }" @click="view = 'settings'">设置</button>
       </nav>
-      <div class="header-side"><span class="local-status"><i></i> 仅保存在此设备</span><button class="avatar-button" aria-label="打开设置" @click="view = 'settings'">☼</button></div>
+      <div class="header-side"><button class="avatar-button" aria-label="打开设置" @click="view = 'settings'">☼</button></div>
     </header>
 
     <main v-show="view === 'wall'" class="wall-view">
@@ -288,6 +293,7 @@ function cardStyle(index: number) {
                   v-if="editingId === entry.id"
                   :settings="settings!"
                   :existing="entry"
+                  :saving="savingMemory"
                   class="grid-card"
                   @save="saveEntry"
                   @cancel="editingId = undefined"
@@ -307,6 +313,7 @@ function cardStyle(index: number) {
                 v-if="groupIndex === monthGroups.length - 1 && composerOpen && settings"
                 class="grid-card"
                 :settings="settings"
+                :saving="savingMemory"
                 @save="saveEntry"
                 @cancel="composerOpen = false"
               />

@@ -89,30 +89,45 @@ export async function getEntry(id: string): Promise<MemoryEntry | undefined> {
 export async function saveMemory(entry: MemoryEntry, photo?: StoredPhoto): Promise<void> {
   const db = await openDatabase()
   const tx = db.transaction([ENTRY_STORE, PHOTO_STORE], 'readwrite')
+  const done = transactionDone(tx)
   const entries = tx.objectStore(ENTRY_STORE)
   const photos = tx.objectStore(PHOTO_STORE)
-  const previous = await requestResult(entries.get(entry.id)) as MemoryEntry | undefined
-  if (photo) photos.put(photo)
-  entries.put(entry)
-  if (previous?.photo && previous.photo.id !== entry.photo?.id) {
-    const all = await requestResult(entries.getAll()) as MemoryEntry[]
-    if (!all.some((item) => item.id !== entry.id && item.photo?.id === previous.photo?.id)) photos.delete(previous.photo.id)
+  const previousRequest = entries.get(entry.id)
+  previousRequest.onsuccess = () => {
+    const previous = previousRequest.result as MemoryEntry | undefined
+    const previousPhotoId = previous?.photo?.id
+    if (photo) photos.put(photo)
+    entries.put(entry)
+    if (previousPhotoId && previousPhotoId !== entry.photo?.id) {
+      const allRequest = entries.getAll()
+      allRequest.onsuccess = () => {
+        const all = allRequest.result as MemoryEntry[]
+        if (!all.some((item) => item.id !== entry.id && item.photo?.id === previousPhotoId)) photos.delete(previousPhotoId)
+      }
+    }
   }
-  await transactionDone(tx)
+  await done
 }
 
 export async function deleteMemory(id: string): Promise<void> {
   const db = await openDatabase()
   const tx = db.transaction([ENTRY_STORE, PHOTO_STORE], 'readwrite')
+  const done = transactionDone(tx)
   const entries = tx.objectStore(ENTRY_STORE)
   const photos = tx.objectStore(PHOTO_STORE)
-  const target = await requestResult(entries.get(id)) as MemoryEntry | undefined
-  entries.delete(id)
-  if (target?.photo?.id) {
-    const all = await requestResult(entries.getAll()) as MemoryEntry[]
-    if (!all.some((entry) => entry.photo?.id === target.photo?.id)) photos.delete(target.photo.id)
+  const targetRequest = entries.get(id)
+  targetRequest.onsuccess = () => {
+    const target = targetRequest.result as MemoryEntry | undefined
+    const targetPhotoId = target?.photo?.id
+    entries.delete(id)
+    if (!targetPhotoId) return
+    const allRequest = entries.getAll()
+    allRequest.onsuccess = () => {
+      const all = allRequest.result as MemoryEntry[]
+      if (!all.some((entry) => entry.photo?.id === targetPhotoId)) photos.delete(targetPhotoId)
+    }
   }
-  await transactionDone(tx)
+  await done
 }
 
 export async function getPhoto(id: string): Promise<StoredPhoto | undefined> {
@@ -123,21 +138,30 @@ export async function getPhoto(id: string): Promise<StoredPhoto | undefined> {
 export async function saveStoredPhoto(photo: StoredPhoto): Promise<void> {
   const db = await openDatabase()
   const tx = db.transaction(PHOTO_STORE, 'readwrite')
+  const done = transactionDone(tx)
   tx.objectStore(PHOTO_STORE).put(photo)
-  await transactionDone(tx)
+  await done
 }
 
 export async function deletePhotoIfUnused(id: string): Promise<void> {
   const db = await openDatabase()
   const tx = db.transaction([ENTRY_STORE, PHOTO_STORE, SETTINGS_STORE], 'readwrite')
-  const [entries, settings] = await Promise.all([
-    requestResult(tx.objectStore(ENTRY_STORE).getAll()) as Promise<MemoryEntry[]>,
-    requestResult(tx.objectStore(SETTINGS_STORE).get('app')) as Promise<AppSettings | undefined>,
-  ])
-  if (settings?.backgroundPhotoId !== id && !entries.some((entry) => entry.photo?.id === id)) {
-    tx.objectStore(PHOTO_STORE).delete(id)
+  const done = transactionDone(tx)
+  const entriesRequest = tx.objectStore(ENTRY_STORE).getAll()
+  const settingsRequest = tx.objectStore(SETTINGS_STORE).get('app')
+  let entriesResult: MemoryEntry[] | undefined
+  let settingsResult: AppSettings | undefined
+  let entriesReady = false
+  let settingsReady = false
+  const maybeDelete = () => {
+    if (!entriesReady || !settingsReady) return
+    if (settingsResult?.backgroundPhotoId !== id && !entriesResult!.some((entry) => entry.photo?.id === id)) {
+      tx.objectStore(PHOTO_STORE).delete(id)
+    }
   }
-  await transactionDone(tx)
+  entriesRequest.onsuccess = () => { entriesResult = entriesRequest.result as MemoryEntry[]; entriesReady = true; maybeDelete() }
+  settingsRequest.onsuccess = () => { settingsResult = settingsRequest.result as AppSettings | undefined; settingsReady = true; maybeDelete() }
+  await done
 }
 
 export async function getSettings(): Promise<AppSettings> {
@@ -150,13 +174,15 @@ export async function getSettings(): Promise<AppSettings> {
 export async function saveSettings(settings: AppSettings): Promise<void> {
   const db = await openDatabase()
   const tx = db.transaction(SETTINGS_STORE, 'readwrite')
+  const done = transactionDone(tx)
   tx.objectStore(SETTINGS_STORE).put(settings, 'app')
-  await transactionDone(tx)
+  await done
 }
 
 export async function replaceAllData(entries: MemoryEntry[], photos: StoredPhoto[], settings: AppSettings): Promise<void> {
   const db = await openDatabase()
   const tx = db.transaction([ENTRY_STORE, PHOTO_STORE, SETTINGS_STORE], 'readwrite')
+  const done = transactionDone(tx)
   const entryStore = tx.objectStore(ENTRY_STORE)
   const photoStore = tx.objectStore(PHOTO_STORE)
   entryStore.clear()
@@ -164,7 +190,7 @@ export async function replaceAllData(entries: MemoryEntry[], photos: StoredPhoto
   entries.forEach((entry) => entryStore.put(entry))
   photos.forEach((photo) => photoStore.put(photo))
   tx.objectStore(SETTINGS_STORE).put(settings, 'app')
-  await transactionDone(tx)
+  await done
 }
 
 export async function estimateStorage(): Promise<{ usage?: number; quota?: number }> {
