@@ -197,10 +197,10 @@ function updateRangeEnd(event: Event) {
   <main class="map-view">
     <div ref="mapElement" class="map-canvas" aria-label="记忆地图"></div>
     <div class="map-wash" aria-hidden="true"></div>
-    <div class="map-map-error" v-if="mapError">
+    <div class="map-map-error glass-card" v-if="mapError">
       <span class="map-error-symbol"><IconGlyph name="pin" :size="22" /></span>
       <strong>{{ mapError.includes('VITE_AMAP_KEY') ? '为记忆接入一张地图' : '地图暂时没有展开' }}</strong>
-      <p>{{ mapError.includes('VITE_AMAP_KEY') ? '地图服务需要一个高德 Web JS API Key。你仍可以在上方搜索自己的记录。' : mapError }}</p>
+      <p>{{ mapError.includes('VITE_AMAP_KEY') ? '地图服务需要一个高德 Web JS API Key。' : mapError }}</p>
       <button v-if="!mapError.includes('VITE_AMAP_KEY')" type="button" @click="initializeMap">再试一次</button>
     </div>
 
