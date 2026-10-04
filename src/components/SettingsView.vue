@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getAllEntries, getPhoto } from '../data/database'
 import { downloadBlob, exportBackup, importBackup } from '../data/export'
 import { preparePhoto } from '../data/photos'
+import { createId } from '../data/id'
 import type { AppSettings, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
 
@@ -71,9 +72,14 @@ async function chooseBackground(event: Event) {
   if (!file) return
   busy.value = '正在准备背景图片…'
   try {
-    const prepared = await preparePhoto(file, draft.value)
+    const prepared = await preparePhoto(file, {
+      ...draft.value,
+      preserveOriginal: false,
+      maxImageDimension: Math.min(draft.value.maxImageDimension, 1800),
+      imageQuality: Math.min(draft.value.imageQuality, 76),
+    })
     const photo: StoredPhoto = {
-      id: crypto.randomUUID(),
+      id: createId(),
       thumbnail: prepared.thumbnail,
       original: prepared.original,
       mimeType: prepared.original?.type || prepared.thumbnail.type,

@@ -51,8 +51,13 @@ function requestResult<T>(request: IDBRequest<T>): Promise<T> {
 
 function transactionDone(transaction: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve()
-    transaction.onabort = transaction.onerror = () => reject(transaction.error ?? new Error('本地数据库事务失败。'))
+    let requestError: DOMException | null = null
+    transaction.addEventListener('error', (event) => {
+      const request = event.target as IDBRequest | null
+      if (request?.error) requestError = request.error
+    }, true)
+    transaction.addEventListener('complete', () => resolve(), { once: true })
+    transaction.addEventListener('abort', () => reject(requestError ?? transaction.error ?? new Error('本地数据库事务失败。')), { once: true })
   })
 }
 
@@ -87,47 +92,28 @@ export async function getEntry(id: string): Promise<MemoryEntry | undefined> {
 }
 
 export async function saveMemory(entry: MemoryEntry, photo?: StoredPhoto): Promise<void> {
+  const previous = await getEntry(entry.id)
   const db = await openDatabase()
   const tx = db.transaction([ENTRY_STORE, PHOTO_STORE], 'readwrite')
   const done = transactionDone(tx)
-  const entries = tx.objectStore(ENTRY_STORE)
-  const photos = tx.objectStore(PHOTO_STORE)
-  const previousRequest = entries.get(entry.id)
-  previousRequest.onsuccess = () => {
-    const previous = previousRequest.result as MemoryEntry | undefined
-    const previousPhotoId = previous?.photo?.id
-    if (photo) photos.put(photo)
-    entries.put(entry)
-    if (previousPhotoId && previousPhotoId !== entry.photo?.id) {
-      const allRequest = entries.getAll()
-      allRequest.onsuccess = () => {
-        const all = allRequest.result as MemoryEntry[]
-        if (!all.some((item) => item.id !== entry.id && item.photo?.id === previousPhotoId)) photos.delete(previousPhotoId)
-      }
-    }
-  }
+  if (photo) tx.objectStore(PHOTO_STORE).put(photo)
+  tx.objectStore(ENTRY_STORE).put(entry)
   await done
+  if (previous?.photo && previous.photo.id !== entry.photo?.id) {
+    try { await deletePhotoIfUnused(previous.photo.id) } catch { /* Stale photos can be cleaned up later. */ }
+  }
 }
 
 export async function deleteMemory(id: string): Promise<void> {
+  const target = await getEntry(id)
   const db = await openDatabase()
   const tx = db.transaction([ENTRY_STORE, PHOTO_STORE], 'readwrite')
   const done = transactionDone(tx)
-  const entries = tx.objectStore(ENTRY_STORE)
-  const photos = tx.objectStore(PHOTO_STORE)
-  const targetRequest = entries.get(id)
-  targetRequest.onsuccess = () => {
-    const target = targetRequest.result as MemoryEntry | undefined
-    const targetPhotoId = target?.photo?.id
-    entries.delete(id)
-    if (!targetPhotoId) return
-    const allRequest = entries.getAll()
-    allRequest.onsuccess = () => {
-      const all = allRequest.result as MemoryEntry[]
-      if (!all.some((entry) => entry.photo?.id === targetPhotoId)) photos.delete(targetPhotoId)
-    }
-  }
+  tx.objectStore(ENTRY_STORE).delete(id)
   await done
+  if (target?.photo) {
+    try { await deletePhotoIfUnused(target.photo.id) } catch { /* Stale photos can be cleaned up later. */ }
+  }
 }
 
 export async function getPhoto(id: string): Promise<StoredPhoto | undefined> {

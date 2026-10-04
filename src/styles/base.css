@@ -137,7 +137,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .empty-note { padding: 28px 10px 17px; color: #97aaab; text-align: center; font-size: 11px; line-height: 1.9; }
 .wall-endnote { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 10px 0 2px; color: #a6b5b3; font-size: 9px; letter-spacing: .6px; }
 .wall-endnote .icon-glyph { color: #9cb5ac; }
-.app-footer { display: flex; align-items: center; justify-content: space-between; height: 54px; border-top: 1px solid #718e9412; color: #9aabad; font-size: 9px; letter-spacing: .25px; }
+.app-footer { position: sticky; z-index: 2; bottom: 0; display: flex; align-items: center; justify-content: space-between; height: 48px; margin-top: 10px; color: #9aabad; font-size: 9px; letter-spacing: .25px; }
 .placeholder-view { display: grid; place-content: center; justify-items: center; min-height: calc(100dvh - 180px); color: #7a969b; text-align: center; }
 .placeholder-view > span { display: grid; place-items: center; width: 65px; height: 65px; border: 1px solid #fff; border-radius: 24px; background: #ffffffa1; box-shadow: 0 8px 28px #6b878a13; font-size: 29px; }
 .placeholder-view h2 { margin: 20px 0 4px; color: #4c6970; font: 500 23px var(--serif); }
@@ -310,7 +310,7 @@ button:disabled { cursor: wait; opacity: .55; }
   .today-sparkle { font-size: 16px; }
   .today-note small { font-size: 8px; }
   .today-note strong { font-size: 9px; }
-  .wall-scroller { height: calc(100dvh - 292px); min-height: 280px; padding: 2px 2px 34px; }
+  .wall-scroller { height: calc(100dvh - 263px); min-height: 280px; padding: 2px 2px 28px; }
   .month-group { margin-bottom: 21px; }
   .month-divider { gap: 10px; margin: 6px 0 12px; }
   .month-badge { font-size: 16px; }
@@ -329,15 +329,15 @@ button:disabled { cursor: wait; opacity: .55; }
   .new-memory-card small { text-align: center; line-height: 1.5; }
   .composer-card { padding: 12px; }
   .composer-photo { min-height: 118px; }
-  .app-footer { position: fixed; z-index: 8; right: 0; bottom: 0; left: 0; display: flex; height: calc(28px + env(safe-area-inset-bottom)); align-items: center; padding: 0 14px env(safe-area-inset-bottom); border-top: 1px solid #ffffffc9; color: #93a5a5; background: #f7faf8e8; font-size: 7px; backdrop-filter: blur(18px); }
-  .mobile-nav { position: fixed; z-index: 10; right: 0; bottom: calc(28px + env(safe-area-inset-bottom)); left: 0; display: flex; justify-content: space-around; padding: 7px 10px; border: 1px solid #ffffffd1; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 18px 18px 0 0; background: #f9fcf9ed; box-shadow: 0 -5px 20px #4e6f7010; backdrop-filter: blur(22px); }
+  .app-footer { height: 38px; margin-top: 12px; padding: 0 4px; border: 0; color: #93a5a5; background: transparent; font-size: 7px; }
+  .mobile-nav { position: fixed; z-index: 10; right: auto; bottom: max(10px, env(safe-area-inset-bottom)); left: 50%; width: min(360px, calc(100% - 32px)); display: flex; justify-content: space-around; padding: 8px 15px; transform: translateX(-50%); border: 1px solid #ffffffd1; border-radius: 24px; background: #f9fcf9e8; box-shadow: 0 8px 26px #4e6f7021; backdrop-filter: blur(22px); }
   .mobile-nav button { display: flex; min-width: 68px; flex-direction: column; align-items: center; gap: 3px; border: 0; color: #8b9fa1; background: none; cursor: pointer; font-size: 8px; }
   .mobile-nav button span { font-size: 17px; line-height: 1; }
   .mobile-nav button.active { color: #537b7f; }
   .wall-endnote { padding-bottom: 48px; }
   .toast-message { right: 14px; bottom: 78px; left: 14px; width: fit-content; margin-inline: auto; text-align: center; }
-  .settings-view { width: min(100% - 28px, 540px); height: calc(100dvh - 210px); margin-top: 18px; padding: 0 0 calc(116px + env(safe-area-inset-bottom)); }
-  .map-view { width: calc(100% - 18px); height: calc(100dvh - 202px); min-height: 310px; margin-top: 9px; border-radius: 23px; }
+  .settings-view { width: min(100% - 28px, 540px); height: calc(100dvh - 166px); margin-top: 18px; padding: 0 0 24px; }
+  .map-view { width: calc(100% - 18px); height: calc(100dvh - 152px); min-height: 310px; margin-top: 9px; border-radius: 23px; }
   .map-overlay { top: 11px; left: 10px; }
   .map-search-icon { width: 40px; height: 40px; }
   .map-search-box { height: 41px; }

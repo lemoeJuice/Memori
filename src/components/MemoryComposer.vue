@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { getPhoto } from '../data/database'
 import { getCurrentLocation } from '../data/location'
 import { preparePhoto } from '../data/photos'
+import { createId } from '../data/id'
 import type { AppSettings, GeoPoint, MemoryEntry, PhotoInput, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
 
@@ -97,8 +98,8 @@ async function requestCurrentLocation(token = ++locationRequestToken) {
 
 function save() {
   if (props.saving || photoBusy.value) return
-  const id = props.existing?.id ?? crypto.randomUUID()
-  const photoId = photoInput.value ? crypto.randomUUID() : (props.existing?.photo && previewUrl.value ? props.existing.photo.id : undefined)
+  const id = props.existing?.id ?? createId()
+  const photoId = photoInput.value ? createId() : (props.existing?.photo && previewUrl.value ? props.existing.photo.id : undefined)
   const entry: MemoryEntry = {
     id,
     createdAt,

@@ -123,13 +123,21 @@ async function saveEntry(entry: MemoryEntry, photo?: StoredPhoto) {
   if (savingMemory.value) return
   savingMemory.value = true
   try {
-    await saveMemory(entry, photo)
+    let savedWithoutOriginal = false
+    try {
+      await saveMemory(entry, photo)
+    } catch (error) {
+      const failureName = error instanceof DOMException ? error.name : ''
+      if (!photo?.original || !['AbortError', 'QuotaExceededError'].includes(failureName)) throw error
+      await saveMemory(entry, { ...photo, original: undefined })
+      savedWithoutOriginal = true
+    }
     const existing = entries.value.findIndex((item) => item.id === entry.id)
     if (existing >= 0) entries.value.splice(existing, 1, entry)
     else entries.value.push(entry)
     editingId.value = undefined
     composerOpen.value = false
-    notice.value = '这段记忆，已经好好收下了。'
+    notice.value = savedWithoutOriginal ? '记忆已保存；设备空间有限，未保留原图。' : '这段记忆，已经好好收下了。'
     window.setTimeout(() => { notice.value = '' }, 2600)
   } catch (error) {
     notice.value = error instanceof Error ? error.message : '保存失败，请稍后重试。'
@@ -333,13 +341,13 @@ function cardStyle(index: number) {
         <div v-if="!ready" class="wall-loading"><span class="loading-orbit"></span>正在拾起你的记忆…</div>
         <div v-else-if="!entries.length" class="empty-note">这里还很安静。<br />给生活留一个柔软的开始吧。</div>
         <footer class="wall-endnote"><IconGlyph name="sparkle" :size="12" /> 慢慢生活，慢慢记起 <IconGlyph name="sparkle" :size="12" /></footer>
+        <footer class="app-footer"><span>Made for the moments you want to keep</span><span>你的生活，只在你的设备里。</span></footer>
       </div>
     </main>
 
     <MapView v-if="mapMounted && settings" v-show="view === 'map'" :settings="settings" />
     <SettingsView v-if="view === 'settings' && settings" :settings="settings" @change="updateSettings" @background="updateBackground" @restored="afterRestore" />
 
-    <footer class="app-footer"><span>Made for the moments you want to keep</span><span>你的生活，只在你的设备里。</span></footer>
     <Transition name="toast"><div v-if="notice" class="toast-message">{{ notice }}</div></Transition>
     <div v-if="notice && !ready" class="startup-error">{{ notice }}</div>
     <nav class="mobile-nav" aria-label="底部导航">
