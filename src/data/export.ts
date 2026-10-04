@@ -14,10 +14,11 @@ export async function exportBackup(): Promise<Blob> {
     if (entry.photo) {
       const photo = await getPhoto(entry.photo.id)
       if (photo) {
+        const extension = extensionForMime(photo.original?.type || photo.thumbnail.type)
         copy.thumbnailFile = `photos/${photo.id}-thumb.webp`
         zip.file(copy.thumbnailFile, photo.thumbnail)
         if (photo.original) {
-          copy.photoFile = `photos/${photo.id}.webp`
+          copy.photoFile = `photos/${photo.id}.${extension}`
           zip.file(copy.photoFile, photo.original)
         }
       }
@@ -25,6 +26,17 @@ export async function exportBackup(): Promise<Blob> {
     exportedEntries.push(copy)
   }
   const archive: ExportArchive = { schemaVersion: 1, exportedAt: Date.now(), entries: exportedEntries, settings }
+  if (settings.backgroundPhotoId) {
+    const background = await getPhoto(settings.backgroundPhotoId)
+    if (background) {
+      archive.backgroundThumbnailFile = `photos/${background.id}-thumb.webp`
+      zip.file(archive.backgroundThumbnailFile, background.thumbnail)
+      if (background.original) {
+        archive.backgroundPhotoFile = `photos/${background.id}.${extensionForMime(background.original.type)}`
+        zip.file(archive.backgroundPhotoFile, background.original)
+      }
+    }
+  }
   zip.file('memori-backup.json', JSON.stringify(archive, null, 2))
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 5 } })
 }
@@ -59,15 +71,44 @@ export async function importBackup(file: File): Promise<number> {
       thumbnail,
       original,
       mimeType: original?.type || thumbnail.type || 'image/webp',
-      fileName: `${entry.photo.id}.webp`,
+      fileName: `${entry.photo.id}.${extensionForMime(original?.type || thumbnail.type)}`,
       width: 0,
       height: 0,
       createdAt: entry.createdAt,
     })
   }
+  if (data.settings?.backgroundPhotoId && data.backgroundThumbnailFile) {
+    const thumbnailEntry = zip.file(data.backgroundThumbnailFile)
+    if (thumbnailEntry && !photos.some((photo) => photo.id === data.settings?.backgroundPhotoId)) {
+      const thumbnail = await thumbnailEntry.async('blob')
+      const originalEntry = data.backgroundPhotoFile ? zip.file(data.backgroundPhotoFile) : null
+      const original = originalEntry ? await originalEntry.async('blob') : undefined
+      photos.push({
+        id: data.settings.backgroundPhotoId,
+        thumbnail,
+        original,
+        mimeType: original?.type || thumbnail.type || 'image/webp',
+        fileName: `background.${extensionForMime(original?.type || thumbnail.type)}`,
+        width: 0,
+        height: 0,
+        createdAt: Date.now(),
+      })
+    }
+  }
   const settings: AppSettings = { ...DEFAULT_SETTINGS, ...(data.settings ?? {}) }
+  if (settings.backgroundPhotoId && !photos.some((photo) => photo.id === settings.backgroundPhotoId)) {
+    settings.backgroundPhotoId = undefined
+  }
   await replaceAllData(entries, photos, settings)
   return entries.length
+}
+
+function extensionForMime(mimeType: string): string {
+  if (mimeType.includes('jpeg')) return 'jpg'
+  if (mimeType.includes('png')) return 'png'
+  if (mimeType.includes('gif')) return 'gif'
+  if (mimeType.includes('avif')) return 'avif'
+  return 'webp'
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

@@ -90,4 +90,6 @@ export interface ExportArchive {
   exportedAt: number
   entries: Array<MemoryEntry & { photoFile?: string; thumbnailFile?: string }>
   settings: AppSettings
+  backgroundPhotoFile?: string
+  backgroundThumbnailFile?: string
 }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MemoryCard from './components/MemoryCard.vue'
 import MemoryComposer from './components/MemoryComposer.vue'
-import { deleteMemory, getEntriesPage, getPhoto, getSettings, saveMemory } from './data/database'
+import SettingsView from './components/SettingsView.vue'
+import { deleteMemory, deletePhotoIfUnused, getEntriesPage, getPhoto, getSettings, saveMemory, saveSettings, saveStoredPhoto } from './data/database'
 import { downloadBlob } from './data/export'
 import type { AppSettings, MemoryEntry, StoredPhoto } from './data/types'
 
@@ -18,8 +19,10 @@ const historySentinel = ref<HTMLElement>()
 const loadingOlder = ref(false)
 const hasOlder = ref(true)
 const notice = ref('')
+const wallpaperUrl = ref('')
 let observer: IntersectionObserver | undefined
 let didSetInitialPosition = false
+let wallpaperObjectUrl = ''
 
 const visibleEntries = computed(() => entries.value)
 const monthGroups = computed(() => {
@@ -46,7 +49,24 @@ const wallStyle = computed(() => ({
   '--glass-blur': `${settings.value?.glassBlur ?? 18}px`,
   '--card-radius': `${settings.value?.cornerRadius ?? 24}px`,
   '--background-dim': `${(settings.value?.backgroundDim ?? 8) / 100}`,
+  '--background-blur': `${settings.value?.backgroundBlur ?? 0}px`,
 }))
+
+watch(() => settings.value?.backgroundPhotoId, async (id) => {
+  if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl)
+  wallpaperObjectUrl = ''
+  wallpaperUrl.value = ''
+  if (!id) return
+  const photo = await getPhoto(id)
+  if (!photo || settings.value?.backgroundPhotoId !== id) return
+  wallpaperObjectUrl = URL.createObjectURL(photo.thumbnail)
+  wallpaperUrl.value = wallpaperObjectUrl
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl)
+})
 
 onMounted(async () => {
   try {
@@ -120,6 +140,33 @@ async function removeEntry(id: string) {
 async function toggleFavorite(entry: MemoryEntry) {
   const updated = { ...entry, favorite: !entry.favorite, updatedAt: Date.now() }
   await saveEntry(updated)
+}
+
+async function updateSettings(updated: AppSettings) {
+  const previousBackground = settings.value?.backgroundPhotoId
+  try {
+    await saveSettings(updated)
+    settings.value = updated
+    if (previousBackground && previousBackground !== updated.backgroundPhotoId) {
+      await deletePhotoIfUnused(previousBackground)
+    }
+  } catch {
+    notice.value = '设置暂时无法保存，请稍后重试。'
+  }
+}
+
+async function updateBackground(photo: StoredPhoto) {
+  try {
+    await saveStoredPhoto(photo)
+    await updateSettings({ ...settings.value!, backgroundPhotoId: photo.id })
+  } catch {
+    notice.value = '无法保存背景图片。'
+  }
+}
+
+function afterRestore(count: number) {
+  notice.value = `已从备份恢复 ${count} 段记忆，正在重新载入…`
+  window.setTimeout(() => window.location.reload(), 900)
 }
 
 function editEntry(entry: MemoryEntry) {
@@ -198,7 +245,8 @@ function cardStyle(index: number) {
 </script>
 
 <template>
-  <div class="app-frame" :style="wallStyle">
+  <div class="app-frame" :class="{ 'has-wallpaper': wallpaperUrl }" :data-theme="settings?.theme ?? 'light'" :style="wallStyle">
+    <div v-if="wallpaperUrl" class="wallpaper-layer" :style="{ backgroundImage: `linear-gradient(rgb(237 244 244 / var(--background-dim)), rgb(237 244 244 / var(--background-dim))), url(${wallpaperUrl})` }" aria-hidden="true"></div>
     <header class="app-header">
       <a class="brand" href="#wall" @click.prevent="view = 'wall'">
         <span class="brand-mark">m</span>
@@ -276,7 +324,7 @@ function cardStyle(index: number) {
     </main>
 
     <main v-if="view === 'map'" class="placeholder-view"><span>⌖</span><h2>记忆地图</h2><p>每个地方，都藏着一段日子。</p><small>地图即将展开</small></main>
-    <main v-if="view === 'settings'" class="placeholder-view"><span>☼</span><h2>设置</h2><p>让 Memori 更像你喜欢的样子。</p><small>个性化设置即将展开</small></main>
+    <SettingsView v-if="view === 'settings' && settings" :settings="settings" @change="updateSettings" @background="updateBackground" @restored="afterRestore" />
 
     <footer class="app-footer"><span>Made for the moments you want to keep</span><span>你的生活，只在你的设备里。</span></footer>
     <Transition name="toast"><div v-if="notice" class="toast-message">{{ notice }}</div></Transition>

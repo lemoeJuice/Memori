@@ -120,6 +120,26 @@ export async function getPhoto(id: string): Promise<StoredPhoto | undefined> {
   return requestResult(db.transaction(PHOTO_STORE, 'readonly').objectStore(PHOTO_STORE).get(id)) as Promise<StoredPhoto | undefined>
 }
 
+export async function saveStoredPhoto(photo: StoredPhoto): Promise<void> {
+  const db = await openDatabase()
+  const tx = db.transaction(PHOTO_STORE, 'readwrite')
+  tx.objectStore(PHOTO_STORE).put(photo)
+  await transactionDone(tx)
+}
+
+export async function deletePhotoIfUnused(id: string): Promise<void> {
+  const db = await openDatabase()
+  const tx = db.transaction([ENTRY_STORE, PHOTO_STORE, SETTINGS_STORE], 'readwrite')
+  const [entries, settings] = await Promise.all([
+    requestResult(tx.objectStore(ENTRY_STORE).getAll()) as Promise<MemoryEntry[]>,
+    requestResult(tx.objectStore(SETTINGS_STORE).get('app')) as Promise<AppSettings | undefined>,
+  ])
+  if (settings?.backgroundPhotoId !== id && !entries.some((entry) => entry.photo?.id === id)) {
+    tx.objectStore(PHOTO_STORE).delete(id)
+  }
+  await transactionDone(tx)
+}
+
 export async function getSettings(): Promise<AppSettings> {
   const db = await openDatabase()
   const tx = db.transaction(SETTINGS_STORE, 'readonly')
