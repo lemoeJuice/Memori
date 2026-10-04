@@ -182,18 +182,20 @@ function clearSearch() {
     <div class="map-wash" aria-hidden="true"></div>
     <div class="map-map-error" v-if="mapError">
       <span class="map-error-symbol"><IconGlyph name="pin" :size="22" /></span>
-      <strong>{{ mapError.includes('VITE_AMAP_KEY') ? '为记忆地图接入一张底图' : '地图暂时没有展开' }}</strong>
+      <strong>{{ mapError.includes('VITE_AMAP_KEY') ? '为记忆接入一张地图' : '地图暂时没有展开' }}</strong>
       <p>{{ mapError.includes('VITE_AMAP_KEY') ? '地图服务需要一个高德 Web JS API Key。你仍可以在上方搜索自己的记录。' : mapError }}</p>
       <button v-if="!mapError.includes('VITE_AMAP_KEY')" type="button" @click="initializeMap">再试一次</button>
     </div>
 
     <div class="map-overlay map-search-area">
-      <button v-if="!searchOpen" class="map-search-icon glass-card" type="button" aria-label="搜索记忆" @click="searchOpen = true; nextTick(() => searchInput?.focus())"><IconGlyph name="search" :size="20" /></button>
-      <div v-else class="map-search-box glass-card">
-        <span><IconGlyph name="search" :size="17" /></span>
-        <input ref="searchInput" v-model="searchText" type="search" placeholder="搜索地点、文字、日期…" @keydown.esc="clearSearch" />
-        <button type="button" aria-label="关闭搜索" @click="clearSearch"><IconGlyph name="close" :size="13" /></button>
-      </div>
+      <Transition name="map-search-expand" mode="out-in">
+        <button v-if="!searchOpen" key="collapsed" class="map-search-icon glass-card" type="button" aria-label="搜索记忆" @click="searchOpen = true; nextTick(() => searchInput?.focus())"><IconGlyph name="search" :size="20" /></button>
+        <div v-else key="expanded" class="map-search-box glass-card">
+          <span><IconGlyph name="search" :size="17" /></span>
+          <input ref="searchInput" v-model="searchText" type="search" placeholder="搜索地点、文字、日期…" @keydown.esc="clearSearch" />
+          <button type="button" aria-label="关闭搜索" @click="clearSearch"><IconGlyph name="close" :size="13" /></button>
+        </div>
+      </Transition>
       <div v-if="searchOpen && searchText.trim()" class="map-search-results glass-card">
         <button v-for="memory in localSearchResults" :key="memory.entry.id" class="search-result-row" type="button" @click="selectSearchResult(memory)">
           <img v-if="memory.thumbnailUrl" :src="memory.thumbnailUrl" alt="" />

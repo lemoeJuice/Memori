@@ -163,7 +163,7 @@ function formatBytes(bytes: number): string {
       <label class="setting-row range-row"><span class="setting-copy"><strong>背景柔和度</strong><small>让照片背景更轻盈</small></span><span class="range-control"><input v-model.number="draft.backgroundBlur" type="range" min="0" max="18" step="1" @change="persist" /><output>{{ draft.backgroundBlur }} px</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>背景明度</strong><small>调整背景上的柔光</small></span><span class="range-control"><input v-model.number="draft.backgroundDim" type="range" min="0" max="55" step="1" @change="persist" /><output>{{ draft.backgroundDim }}%</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>卡片透明度</strong><small>调节卡片与背景的融合感</small></span><span class="range-control"><input v-model.number="draft.glassOpacity" type="range" min="40" max="96" step="1" @change="persist" /><output>{{ draft.glassOpacity }}%</output></span></label>
-      <label class="setting-row range-row"><span class="setting-copy"><strong>卡片背景模糊</strong><small>调整卡片后的柔焦程度</small></span><span class="range-control"><input v-model.number="draft.glassBlur" type="range" min="0" max="32" step="1" @change="persist" /><output>{{ draft.glassBlur }} px</output></span></label>
+      <label class="setting-row range-row"><span class="setting-copy"><strong>卡片模糊度</strong><small>调整卡片后的柔焦程度</small></span><span class="range-control"><input v-model.number="draft.glassBlur" type="range" min="0" max="32" step="1" @change="persist" /><output>{{ draft.glassBlur }} px</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>卡片圆角</strong><small>柔软或更利落一点</small></span><span class="range-control"><input v-model.number="draft.cornerRadius" type="range" min="14" max="34" step="1" @change="persist" /><output>{{ draft.cornerRadius }} px</output></span></label>
       <div class="setting-row"><span class="setting-copy"><strong>主题模式</strong><small>保持明亮，或跟随设备</small></span><div class="segmented-control"><button :class="{ selected: draft.theme === 'light' }" @click="draft.theme = 'light'; persist()">浅色</button><button :class="{ selected: draft.theme === 'system' }" @click="draft.theme = 'system'; persist()">跟随设备</button></div></div>
     </section>
@@ -172,7 +172,7 @@ function formatBytes(bytes: number): string {
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="image" :size="17" /></span><div><h2>照片与位置</h2><p>让照片和地点一起，帮你记起那一天。</p></div></div>
       <label class="setting-row range-row"><span class="setting-copy"><strong>照片压缩质量</strong><small>较低体积，更省本地空间</small></span><span class="range-control"><input v-model.number="draft.imageQuality" type="range" min="45" max="100" step="1" @change="persist" /><output>{{ draft.imageQuality }}%</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>照片最长边</strong><small>首页优先使用轻量缩略图</small></span><span class="range-control"><input v-model.number="draft.maxImageDimension" type="range" min="1200" max="4000" step="200" @change="persist" /><output>{{ draft.maxImageDimension }} px</output></span></label>
-      <label class="setting-row"><span class="setting-copy"><strong>保留原始照片</strong><small>保留完整原图，可占用更多空间</small></span><input class="toggle-input" v-model="draft.preserveOriginal" type="checkbox" @change="persist" /></label>
+      <label class="setting-row"><span class="setting-copy"><strong>保留原始照片</strong><small>保留完整原图，但会占用更多空间</small></span><input class="toggle-input" v-model="draft.preserveOriginal" type="checkbox" @change="persist" /></label>
       <label class="setting-row"><span class="setting-copy"><strong>读取照片 EXIF 信息</strong><small>可用于拍摄时间与照片中的 GPS 位置</small></span><input class="toggle-input" v-model="draft.readExif" type="checkbox" @change="persist" /></label>
       <label class="setting-row"><span class="setting-copy"><strong>记录当前位置</strong><small>定位失败时，仍可以保存记忆</small></span><input class="toggle-input" v-model="draft.locationEnabled" type="checkbox" @change="persist" /></label>
       <label class="setting-row sub-setting"><span class="setting-copy"><strong>优先使用照片位置</strong><small>照片带有 GPS 时优先采用 EXIF</small></span><input class="toggle-input" v-model="draft.preferExifLocation" type="checkbox" @change="persist" /></label>
@@ -182,10 +182,7 @@ function formatBytes(bytes: number): string {
 
     <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="database" :size="17" /></span><div><h2>你的数据</h2><p>记忆与照片都留在本地，不会上传到云端。</p></div></div>
-      <div class="settings-footer glass-card">
-        <small>Made for the moments you want to keep</small>
-        <p>把日常轻轻收好，让想起的时刻有处可寻。</p>
-      </div>
+      <p class="settings-privacy"><span aria-hidden="true">◉</span> Memori 是本地优先应用。你的记忆属于你，也只属于你。</p>
       <div class="storage-summary"><span class="storage-symbol"><IconGlyph name="archive" :size="16" /></span><span><strong>{{ entryCount }} 段记忆</strong><small>设备存储占用 · {{ usageText }}</small></span><button class="text-button" type="button" @click="refreshUsage">刷新</button></div>
       <div class="backup-actions"><button class="soft-button primary-soft" :disabled="!!busy" @click="exportData">导出全部记忆</button><button class="soft-button" :disabled="!!busy" @click="confirmRestore">从备份恢复</button><input ref="restorePicker" class="visually-hidden" type="file" accept=".zip,application/zip" @change="restoreData" /></div>
       <div v-if="restoreArmed" class="restore-confirm"><span>恢复会替换此设备上的记录和设置。</span><button class="text-button" @click="restoreArmed = false">取消</button><button class="soft-button" @click="restorePicker?.click()">选择备份文件</button></div>
@@ -193,5 +190,9 @@ function formatBytes(bytes: number): string {
     </section>
 
     <div class="settings-feedback" aria-live="polite">{{ busy || feedback }}</div>
+    <footer class="settings-footer settings-section glass-card">
+      <small>Made for the moments you want to keep</small>
+      <p>把日常轻轻收好，让想起的时刻有处可寻。</p>
+    </footer>
   </main>
 </template>

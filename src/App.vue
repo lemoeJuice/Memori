@@ -17,6 +17,7 @@ const settings = ref<AppSettings>()
 const ready = ref(false)
 const composerOpen = ref(false)
 const savingMemory = ref(false)
+const wallAtBottom = ref(false)
 const editingId = ref<string>()
 const wallScroller = ref<HTMLElement>()
 const historySentinel = ref<HTMLElement>()
@@ -85,7 +86,7 @@ onMounted(async () => {
     ready.value = true
     await nextTick()
     if (!didSetInitialPosition && wallScroller.value) {
-      wallScroller.value.scrollTop = wallScroller.value.scrollHeight
+      wallScroller.value.scrollTop = page.length ? wallScroller.value.scrollHeight : 0
       didSetInitialPosition = true
     }
     observer = new IntersectionObserver((changes) => {
@@ -97,6 +98,16 @@ onMounted(async () => {
     ready.value = true
   }
 })
+
+function updateWallScroll(event: Event) {
+  if (entries.value.length) {
+    wallAtBottom.value = false
+    return
+  }
+  const scroller = event.currentTarget as HTMLElement
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight
+  wallAtBottom.value = maxScroll > 8 && scroller.scrollTop >= maxScroll - 3
+}
 
 async function loadOlder() {
   if (loadingOlder.value || !hasOlder.value || !entries.value.length) return
@@ -289,7 +300,7 @@ function cardStyle(index: number) {
         </div>
       </div>
 
-      <div ref="wallScroller" class="wall-scroller">
+      <div ref="wallScroller" class="wall-scroller" :class="{ 'wall-scroller--empty': ready && !entries.length }" @scroll="updateWallScroll">
         <div ref="historySentinel" class="history-sentinel" aria-hidden="true"></div>
         <div v-if="loadingOlder" class="history-loading">正在把更早的日子翻出来…</div>
         <template v-for="(group, groupIndex) in monthGroups" :key="group.key">
@@ -339,8 +350,11 @@ function cardStyle(index: number) {
           </section>
         </template>
         <div v-if="!ready" class="wall-loading"><span class="loading-orbit"></span>正在拾起你的记忆…</div>
-        <div v-else-if="!entries.length" class="empty-note">这里还很安静。<br />给生活留一个柔软的开始吧。</div>
-        <footer class="wall-endnote"><IconGlyph name="sparkle" :size="12" /> 慢慢生活，慢慢记起 <IconGlyph name="sparkle" :size="12" /></footer>
+        <div v-if="ready && !entries.length" class="empty-state">
+          <div class="empty-note">这里还很安静。<br />给生活留一个柔软的开始吧。</div>
+          <footer class="wall-endnote" :class="{ 'wall-endnote--revealed': wallAtBottom }"><IconGlyph name="sparkle" :size="12" /> 慢慢生活，慢慢记起 <IconGlyph name="sparkle" :size="12" /></footer>
+        </div>
+        <div v-if="ready && !entries.length" class="empty-scroll-tail" aria-hidden="true"></div>
       </div>
     </main>
 
