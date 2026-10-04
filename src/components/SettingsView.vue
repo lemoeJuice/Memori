@@ -21,8 +21,10 @@ const storageUsage = ref<{ usage?: number; quota?: number }>({})
 const entryCount = ref(0)
 const busy = ref('')
 const feedback = ref('')
+const toastMessage = computed(() => busy.value || feedback.value)
 const restoreArmed = ref(false)
 let backgroundObjectUrl = ''
+let feedbackTimer = 0
 
 watch(() => props.settings, (settings) => {
   draft.value = { ...settings }
@@ -38,7 +40,16 @@ onMounted(async () => {
   await refreshUsage()
   await loadBackground()
 })
-onBeforeUnmount(() => { if (backgroundObjectUrl) URL.revokeObjectURL(backgroundObjectUrl) })
+onBeforeUnmount(() => {
+  if (backgroundObjectUrl) URL.revokeObjectURL(backgroundObjectUrl)
+  if (feedbackTimer) window.clearTimeout(feedbackTimer)
+})
+
+function showFeedback(message: string) {
+  feedback.value = message
+  if (feedbackTimer) window.clearTimeout(feedbackTimer)
+  feedbackTimer = window.setTimeout(() => { feedback.value = '' }, 2400)
+}
 
 async function refreshUsage() {
   try {
@@ -63,8 +74,7 @@ async function loadBackground() {
 function persist() {
   const updated = { ...draft.value }
   emit('change', updated)
-  feedback.value = '设置已保存'
-  window.setTimeout(() => { feedback.value = '' }, 1800)
+  showFeedback('设置已保存')
 }
 
 async function chooseBackground(event: Event) {
@@ -91,10 +101,10 @@ async function chooseBackground(event: Event) {
     draft.value.backgroundPhotoId = photo.id
     emit('background', photo)
     busy.value = ''
-    feedback.value = '背景图片已更新'
+    showFeedback('背景图片已更新')
   } catch (error) {
     busy.value = ''
-    feedback.value = error instanceof Error ? error.message : '无法使用这张图片'
+    showFeedback(error instanceof Error ? error.message : '无法使用这张图片')
   } finally {
     if (backgroundPicker.value) backgroundPicker.value.value = ''
   }
@@ -110,9 +120,9 @@ async function exportData() {
   try {
     const blob = await exportBackup()
     downloadBlob(blob, `memori-backup-${new Date().toISOString().slice(0, 10)}.zip`)
-    feedback.value = '备份已准备好，包含记录与照片。'
+    showFeedback('备份已准备好，包含记录与照片。')
   } catch (error) {
-    feedback.value = error instanceof Error ? error.message : '导出失败，请稍后重试。'
+    showFeedback(error instanceof Error ? error.message : '导出失败，请稍后重试。')
   } finally { busy.value = '' }
 }
 
@@ -124,7 +134,7 @@ async function restoreData(event: Event) {
     const count = await importBackup(file)
     emit('restored', count)
   } catch (error) {
-    feedback.value = error instanceof Error ? error.message : '无法恢复这个备份。'
+    showFeedback(error instanceof Error ? error.message : '无法恢复这个备份。')
   } finally {
     busy.value = ''
     if (restorePicker.value) restorePicker.value.value = ''
@@ -181,18 +191,19 @@ function formatBytes(bytes: number): string {
     </section>
 
     <section class="settings-section glass-card">
-      <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="database" :size="17" /></span><div><h2>你的数据</h2><p>记忆与照片都留在本地，不会上传到云端。</p></div></div>
-      <p class="settings-privacy"><span aria-hidden="true">◉</span> Memori 是本地优先应用。你的记忆属于你，也只属于你。</p>
+      <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="database" :size="17" /></span><div><h2>你的数据</h2><p>记忆与照片都留在本地，不会上传到云端。你的记忆属于你，也只属于你。</p></div></div>
       <div class="storage-summary"><span class="storage-symbol"><IconGlyph name="archive" :size="16" /></span><span><strong>{{ entryCount }} 段记忆</strong><small>设备存储占用 · {{ usageText }}</small></span><button class="soft-button refresh-button" type="button" @click="refreshUsage">刷新</button></div>
       <div class="backup-actions"><button class="soft-button primary-soft" :disabled="!!busy" @click="exportData">导出全部记忆</button><button class="soft-button" :disabled="!!busy" @click="confirmRestore">从备份恢复</button><input ref="restorePicker" class="visually-hidden" type="file" accept=".zip,application/zip" @change="restoreData" /></div>
       <div v-if="restoreArmed" class="restore-confirm"><span>恢复会替换此设备上的记录和设置。</span><button class="text-button" @click="restoreArmed = false">取消</button><button class="soft-button" @click="restorePicker?.click()">选择备份文件</button></div>
       <p v-else class="backup-hint">备份包含 JSON 记录与相关照片。恢复操作会替换此设备上的现有数据。</p>
     </section>
 
-    <div class="settings-feedback" aria-live="polite">{{ busy || feedback }}</div>
     <footer class="settings-footer settings-section glass-card">
       <small>Made for the moments you want to keep</small>
       <p>把日常轻轻收好，让想起的时刻有处可寻。</p>
     </footer>
+    <Transition name="settings-toast">
+      <div v-if="toastMessage" class="settings-toast" role="status" aria-live="polite">{{ toastMessage }}</div>
+    </Transition>
   </main>
 </template>
