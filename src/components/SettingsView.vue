@@ -3,9 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getAllEntries, getPhoto } from '../data/database'
 import { downloadBlob, exportBackup, importBackup } from '../data/export'
 import { createId } from '../data/id'
+import { checkForUpdates as requestUpdateCheck } from '../pwa'
 import type { AppSettings, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
 import { useEdgePull } from '../composables/useEdgePull'
+import appPackage from '../../package.json'
 
 const props = defineProps<{ settings: AppSettings }>()
 const emit = defineEmits<{
@@ -23,10 +25,13 @@ const storageUsage = ref<{ usage?: number; quota?: number }>({})
 const entryCount = ref(0)
 const busy = ref('')
 const feedback = ref('')
+const updateMessage = ref('')
+const isCheckingUpdate = ref(false)
 const toastMessage = computed(() => busy.value || feedback.value)
 const restoreArmed = ref(false)
 let backgroundObjectUrl = ''
 let feedbackTimer = 0
+let updateTimer = 0
 const {
   topPull: settingsTopPull,
   bottomPull: settingsBottomPull,
@@ -58,6 +63,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', updateBackgroundAspectRatio)
   if (backgroundObjectUrl) URL.revokeObjectURL(backgroundObjectUrl)
   if (feedbackTimer) window.clearTimeout(feedbackTimer)
+  if (updateTimer) window.clearTimeout(updateTimer)
 })
 
 function showFeedback(message: string) {
@@ -143,6 +149,25 @@ function currentScreenAspectRatio(): string {
 
 function updateBackgroundAspectRatio() {
   backgroundAspectRatio.value = currentScreenAspectRatio()
+}
+
+async function checkForUpdates(): Promise<void> {
+  if (isCheckingUpdate.value) return
+  isCheckingUpdate.value = true
+  updateMessage.value = '正在检查更新…'
+  try {
+    await requestUpdateCheck()
+    updateMessage.value = `已检查，当前已是最新版本 v${appPackage.version}`
+  } catch (error) {
+    updateMessage.value = error instanceof Error ? error.message : '检查更新失败，请稍后重试'
+  } finally {
+    isCheckingUpdate.value = false
+    if (updateTimer) window.clearTimeout(updateTimer)
+    updateTimer = window.setTimeout(() => {
+      if (!isCheckingUpdate.value) updateMessage.value = ''
+      updateTimer = 0
+    }, 3500)
+  }
 }
 
 function clearBackground() {
@@ -244,6 +269,14 @@ function formatBytes(bytes: number): string {
       <div class="backup-actions"><button class="soft-button primary-soft" :disabled="!!busy" @click="exportData">导出全部记忆</button><button class="soft-button" :disabled="!!busy" @click="confirmRestore">从备份恢复</button><input ref="restorePicker" class="visually-hidden" type="file" accept=".zip,application/zip" @change="restoreData" /></div>
       <div v-if="restoreArmed" class="restore-confirm"><span>恢复会替换此设备上的记录和设置。</span><button class="text-button" @click="restoreArmed = false">取消</button><button class="soft-button" @click="restorePicker?.click()">选择备份文件</button></div>
       <p v-else class="backup-hint">备份包含 JSON 记录与相关照片。恢复操作会替换此设备上的现有数据。</p>
+        </section>
+
+        <section class="settings-section glass-card">
+          <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>版本</h2><p>当前版本 v{{ appPackage.version }}</p></div></div>
+          <div class="version-action-row">
+            <p v-if="updateMessage" class="version-status" role="status" aria-live="polite">{{ updateMessage }}</p>
+            <button class="soft-button" type="button" :disabled="isCheckingUpdate" @click="checkForUpdates">{{ isCheckingUpdate ? '检查中…' : '检查更新' }}</button>
+          </div>
         </section>
       </main>
 
