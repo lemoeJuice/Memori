@@ -1,5 +1,7 @@
 # Memory Map 设计与高德地图接入说明
 
+> **当前实现更新：地图凭据采用用户自配 BYOK。** 用户在 Settings → 地图服务填写自己的高德 Web Key、`securityJsCode` 和可选 `serviceHost`。配置只保存在当前浏览器，不上传至 Memori，不随 Memory 备份导出或恢复；有 `serviceHost` 时优先代理，否则直接使用用户本地密钥（当前用户可通过 DevTools 查看）。第一版不要求后端代理或项目预置开发者凭据。下文关于 `.env`、`VITE_AMAP_*` 和生产环境默认代理的示例属于旧接入方案，不再代表当前配置要求。若未来改用项目方共享凭据，再考虑默认代理。任何真实凭据都不得提交到仓库。
+
 > 本文档独立描述应用第二屏「Memory Map」的产品设计与技术接入方式。  
 > 当前推荐地图方案：**高德地图 JS API 2.0**。  
 > 本文不替代主应用设计文档，主应用仍以 Memory Wall / Memory Map / Settings 三屏结构为准。

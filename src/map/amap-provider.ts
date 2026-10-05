@@ -1,7 +1,7 @@
-import AMapLoader from '@amap/amap-jsapi-loader'
 import type { MapMemory, MapProvider, MapProviderEvents } from './map-provider'
 import { toMapCoordinate } from './coordinate'
-import { configureAmapSecurity } from './amap-security'
+import { loadAmap, MAP_LOAD_ERROR } from './amap-loader'
+import type { MapSettings } from './settings'
 
 interface AMapMarker {
   on(event: string, listener: () => void): void
@@ -16,13 +16,11 @@ interface AMapMapInstance {
   destroy(): void
 }
 
-interface AMapApi {
+export interface AMapApi {
   Map: new (container: HTMLElement, options: Record<string, unknown>) => AMapMapInstance
   Marker: new (options: Record<string, unknown>) => AMapMarker
   Pixel: new (x: number, y: number) => unknown
 }
-
-interface AMapLoaderApi { load(options: Record<string, unknown>): Promise<AMapApi> }
 
 const DEFAULT_CENTER: [number, number] = [116.397, 39.908]
 
@@ -32,26 +30,41 @@ export class AmapProvider implements MapProvider {
   private memories: MapMemory[] = []
   private markers: AMapMarker[] = []
 
-  private constructor(map: AMapMapInstance, api: AMapApi, private readonly events: MapProviderEvents) {
+  private constructor(map: AMapMapInstance, api: AMapApi, private readonly events: MapProviderEvents, private readonly surface: HTMLElement) {
     this.map = map
     this.api = api
     this.map.on('zoomend', () => this.renderMarkers())
   }
 
-  static async create(container: HTMLElement, events: MapProviderEvents): Promise<AmapProvider> {
-    const key = import.meta.env.VITE_AMAP_KEY
-    if (!key) throw new Error('请在 .env.local 中配置 VITE_AMAP_KEY 后重试。')
-    configureAmapSecurity()
-    const api = await (AMapLoader as unknown as AMapLoaderApi).load({ key, version: '2.0', plugins: [] })
-    const map = new api.Map(container, {
-      zoom: 11,
-      viewMode: '2D',
-      mapStyle: 'amap://styles/whitesmoke',
-      center: DEFAULT_CENTER,
-      animateEnable: true,
-      resizeEnable: true,
+  static async create(container: HTMLElement, events: MapProviderEvents, settings: MapSettings, isCurrent: () => boolean = () => true): Promise<AmapProvider> {
+    const api = await loadAmap(settings)
+    if (!isCurrent()) throw new Error('地图配置已更新。')
+    const surface = document.createElement('div')
+    surface.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;'
+    container.appendChild(surface)
+    let map: AMapMapInstance
+    try {
+      map = new api.Map(surface, {
+        zoom: 11,
+        viewMode: '2D',
+        mapStyle: 'amap://styles/whitesmoke',
+        center: DEFAULT_CENTER,
+        animateEnable: true,
+        resizeEnable: true,
+      })
+    } catch {
+      surface.remove()
+      throw new Error(MAP_LOAD_ERROR)
+    }
+    await new Promise<void>((resolve, reject) => {
+      const timer = window.setTimeout(() => {
+        map.destroy()
+        surface.remove()
+        reject(new Error(MAP_LOAD_ERROR))
+      }, 15000)
+      map.on('complete', () => { clearTimeout(timer); resolve() })
     })
-    return new AmapProvider(map, api, events)
+    return new AmapProvider(map, api, events, surface)
   }
 
   setMemories(memories: MapMemory[]): void {
@@ -75,6 +88,7 @@ export class AmapProvider implements MapProvider {
     if (this.markers.length) this.map.remove(this.markers)
     this.markers = []
     this.map.destroy()
+    this.surface.remove()
   }
 
   private renderMarkers(): void {

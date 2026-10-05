@@ -9,9 +9,9 @@ npm install
 npm run dev
 ```
 
-Create `.env.local` from `.env.example` only if you want to enable the Memory Map. Add an AMap JS API 2.0 Web key as `VITE_AMAP_KEY`. Without a key, the wall, settings, local search and backup features continue to work, while the map explains how to connect a provider.
+To enable Memory Map, open **Settings → 地图服务**, enter your own AMap Web JS API Key and `securityJsCode`, then save or test the configuration. No developer credentials or environment variables are required. Without a key, the map provides a Settings entry point; other features continue to work.
 
-For production, do not expose `VITE_AMAP_SECURITY_CODE` in a public build. Configure an AMap security proxy and provide its URL through `VITE_AMAP_SERVICE_HOST` instead. The AMap adapter is isolated under `src/map`; raw coordinates in IndexedDB remain WGS84 and are converted only for map display.
+Map credentials are BYOK and stored only in this browser's localStorage, separately from memories and backups. They are not uploaded to Memori. Map loading uses them in requests to AMap or the configured proxy. Direct browser use of `securityJsCode` is visible to the current user in DevTools. An optional `serviceHost` (for example `https://your-proxy.example.com/_AMapService`) takes priority and lets your proxy hide the security code. No map backend is required for this release; if Memori later supplies shared project credentials, a default proxy should be considered. Never commit real credentials. The AMap adapter is isolated under `src/map`; raw coordinates in IndexedDB remain WGS84 and are converted only for map display.
 
 ## Build
 
@@ -19,4 +19,4 @@ For production, do not expose `VITE_AMAP_SECURITY_CODE` in a public build. Confi
 npm run build
 ```
 
-Backups are ZIP archives containing a versioned `memori-backup.json` manifest and referenced photo files. Restoring a backup replaces local entries, photos and settings on this device.
+Backups are ZIP archives containing a versioned `memori-backup.json` manifest and referenced photo files. Restoring a backup replaces local entries, photos and ordinary settings on this device; map credentials are neither exported nor replaced.

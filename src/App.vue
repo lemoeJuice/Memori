@@ -374,7 +374,7 @@ function cardStyle(index: number) {
       </div>
     </main>
 
-    <MapView v-if="mapMounted && settings" v-show="view === 'map'" :settings="settings" />
+    <MapView v-if="mapMounted && settings" v-show="view === 'map'" :settings="settings" @configure="view = 'settings'" />
     <SettingsView v-if="view === 'settings' && settings" :settings="settings" @change="updateSettings" @background="updateBackground" @restored="afterRestore" />
 
     <Transition name="toast"><div v-if="notice" class="toast-message">{{ notice }}</div></Transition>

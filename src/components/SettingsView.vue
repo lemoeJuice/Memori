@@ -7,6 +7,9 @@ import { checkForUpdates as requestUpdateCheck } from '../pwa'
 import type { AppSettings, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
 import appPackage from '../../package.json'
+import { mapSettings, saveMapSettings, validateMapSettings } from '../map/settings'
+import { AmapProvider } from '../map/amap-provider'
+import { MAP_LOAD_ERROR } from '../map/amap-loader'
 
 const props = defineProps<{ settings: AppSettings }>()
 const emit = defineEmits<{
@@ -15,6 +18,50 @@ const emit = defineEmits<{
   restored: [count: number]
 }>()
 const draft = ref<AppSettings>({ ...props.settings })
+const mapDraft = ref({ ...mapSettings.value })
+const showMapKey = ref(false)
+const showSecurityCode = ref(false)
+const testingMap = ref(false)
+const mapFeedback = ref('')
+let settingsDisposed = false
+
+watch(mapDraft, () => { mapFeedback.value = '' }, { deep: true, flush: 'sync' })
+
+function persistMap(): boolean {
+  try {
+    saveMapSettings(mapDraft.value)
+    mapDraft.value = { ...mapSettings.value }
+    mapFeedback.value = '地图配置已保存在本机，地图将使用新配置重新初始化。'
+    return true
+  } catch {
+    mapFeedback.value = '无法保存地图配置，请检查浏览器是否允许本地存储。'
+    return false
+  }
+}
+
+async function testMap() {
+  if (testingMap.value) return
+  try { validateMapSettings(mapDraft.value) }
+  catch (error) { mapFeedback.value = (error as Error).message; return }
+  if (!persistMap()) return
+  testingMap.value = true
+  mapFeedback.value = '正在测试地图加载…'
+  const container = document.createElement('div')
+  container.style.cssText = 'position:fixed;left:-10000px;top:0;width:256px;height:256px;'
+  container.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(container)
+  let testProvider: AmapProvider | undefined
+  try {
+    testProvider = await AmapProvider.create(container, { selectMemory: () => {}, selectCluster: () => {} }, { ...mapSettings.value })
+    if (!settingsDisposed) mapFeedback.value = '测试成功：地图已加载。实际服务权限与配额以高德控制台为准。'
+  } catch {
+    if (!settingsDisposed) mapFeedback.value = MAP_LOAD_ERROR
+  } finally {
+    testProvider?.destroy()
+    container.remove()
+    testingMap.value = false
+  }
+}
 const backgroundPicker = ref<HTMLInputElement>()
 const restorePicker = ref<HTMLInputElement>()
 const backgroundUrl = ref('')
@@ -47,6 +94,7 @@ onMounted(async () => {
   await loadBackground()
 })
 onBeforeUnmount(() => {
+  settingsDisposed = true
   window.removeEventListener('resize', updateBackgroundAspectRatio)
   if (backgroundObjectUrl) URL.revokeObjectURL(backgroundObjectUrl)
   if (feedbackTimer) window.clearTimeout(feedbackTimer)
@@ -239,6 +287,28 @@ function formatBytes(bytes: number): string {
       <label class="setting-row sub-setting"><span class="setting-copy"><strong>优先使用照片位置</strong><small>照片带有 GPS 时优先采用 EXIF</small></span><input class="toggle-input" v-model="draft.preferExifLocation" type="checkbox" @change="persist" /></label>
       <label class="setting-row sub-setting"><span class="setting-copy"><strong>照片无位置时使用当前定位</strong><small>只在允许记录位置时生效</small></span><input class="toggle-input" v-model="draft.currentLocationFallback" type="checkbox" @change="persist" /></label>
       <label class="setting-row"><span class="setting-copy"><strong>在界面显示精确坐标</strong><small>默认隐藏，不影响地图使用</small></span><input class="toggle-input" v-model="draft.showCoordinates" type="checkbox" @change="persist" /></label>
+        </section>
+
+        <section class="settings-section glass-card" id="map-service">
+          <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="map" :size="17" /></span><div><h2>地图服务</h2><p>使用你自己的高德 Web JS API 凭据（BYOK）。</p></div></div>
+          <form autocomplete="off" @submit.prevent="persistMap">
+            <div class="map-credential-row">
+              <label for="amap-key">高德 Web Key</label>
+              <div class="map-credential-input"><input id="amap-key" v-model="mapDraft.key" :type="showMapKey ? 'text' : 'password'" autocomplete="off" spellcheck="false" :disabled="testingMap" /><button class="soft-button" type="button" :aria-pressed="showMapKey" @click="showMapKey = !showMapKey">{{ showMapKey ? '隐藏' : '显示' }}</button></div>
+            </div>
+            <div class="map-credential-row">
+              <label for="amap-security">securityJsCode</label>
+              <div class="map-credential-input"><input id="amap-security" v-model="mapDraft.securityJsCode" :type="showSecurityCode ? 'text' : 'password'" autocomplete="off" spellcheck="false" :disabled="testingMap" /><button class="soft-button" type="button" :aria-pressed="showSecurityCode" @click="showSecurityCode = !showSecurityCode">{{ showSecurityCode ? '隐藏' : '显示' }}</button></div>
+            </div>
+            <div class="map-credential-row">
+              <label for="amap-host">serviceHost（可选，优先使用代理）</label>
+              <div class="map-credential-input"><input id="amap-host" v-model="mapDraft.serviceHost" type="url" placeholder="https://your-proxy.example.com/_AMapService" spellcheck="false" :disabled="testingMap" /></div>
+            </div>
+            <p class="backup-hint">配置仅保存在当前浏览器，不上传到 Memori，也不随记忆备份导出或恢复。测试和使用地图时，凭据会用于向高德或你配置的代理发起请求。</p>
+            <p class="backup-hint">securityJsCode 是高德 Web JS API 安全校验密钥。直接使用时可在 DevTools 中看到；serviceHost 代理可隐藏该密钥。当前无需自行部署后端，未填代理时使用本地密钥。</p>
+            <div class="backup-actions"><button class="soft-button primary-soft" type="submit" :disabled="testingMap">保存配置</button><button class="soft-button" type="button" :disabled="testingMap" @click="testMap">{{ testingMap ? '测试中…' : '测试配置' }}</button></div>
+            <p v-if="mapFeedback" class="version-status" role="status" aria-live="polite">{{ mapFeedback }}</p>
+          </form>
         </section>
 
         <section class="settings-section glass-card">

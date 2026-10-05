@@ -5,8 +5,14 @@ import type { AppSettings, MemoryEntry } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
 import { AmapProvider } from '../map/amap-provider'
 import type { MapMemory, MapProvider } from '../map/map-provider'
+import { mapSettings } from '../map/settings'
+import { MAP_LOAD_ERROR } from '../map/amap-loader'
 
 const props = defineProps<{ settings: AppSettings }>()
+const emit = defineEmits<{ configure: [] }>()
+const hasMapKey = computed(() => !!mapSettings.value.key)
+let initialization = 0
+let disposed = false
 const mapElement = ref<HTMLElement>()
 const provider = shallowRef<MapProvider | null>(null)
 const memories = ref<MapMemory[]>([])
@@ -108,6 +114,8 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  disposed = true
+  initialization++
   if (updateFrame) cancelAnimationFrame(updateFrame)
   provider.value?.destroy()
   photoUrls.forEach((url) => URL.revokeObjectURL(url))
@@ -115,27 +123,33 @@ onBeforeUnmount(() => {
 })
 
 async function initializeMap() {
-  if (!mapElement.value) return
-  mapInitializing.value = true
+  const attempt = ++initialization
   provider.value?.destroy()
   provider.value = null
   mapError.value = ''
+  mapInitializing.value = false
+  if (disposed || !mapElement.value || !hasMapKey.value) return
+  mapInitializing.value = true
   try {
-    provider.value = await AmapProvider.create(mapElement.value, {
+    const created = await AmapProvider.create(mapElement.value, {
       selectMemory: openMemory,
       selectCluster: openCluster,
-    })
+    }, { ...mapSettings.value }, () => !disposed && attempt === initialization)
+    if (disposed || attempt !== initialization) { created.destroy(); return }
+    provider.value = created
     provider.value.setMemories(visibleMemories.value)
     const newestWithLocation = [...memories.value].reverse().find(({ entry }) => entry.location)
     if (newestWithLocation?.entry.location) {
       provider.value.setCenter(newestWithLocation.entry.location.latitude, newestWithLocation.entry.location.longitude)
     }
-  } catch (error) {
-    mapError.value = error instanceof Error ? error.message : '地图暂时无法加载。'
+  } catch {
+    if (attempt === initialization && !disposed) mapError.value = MAP_LOAD_ERROR
   } finally {
-    mapInitializing.value = false
+    if (attempt === initialization && !disposed) mapInitializing.value = false
   }
 }
+
+watch(mapSettings, () => { void initializeMap() }, { flush: 'sync' })
 
 async function loadThumbnail(memory: MapMemory) {
   const id = memory.entry.photo?.id
@@ -201,11 +215,12 @@ function updateRangeEnd(event: Event) {
   <main class="map-view">
     <div ref="mapElement" class="map-canvas" aria-label="记忆地图"></div>
     <div class="map-wash" aria-hidden="true"></div>
-    <div class="map-map-error glass-card" v-if="mapError">
+    <div class="map-map-error glass-card" v-if="!hasMapKey || mapError" role="status">
       <span class="map-error-symbol"><IconGlyph name="pin" :size="22" /></span>
-      <strong>{{ mapError.includes('VITE_AMAP_KEY') ? '为记忆接入一张地图' : '地图暂时没有展开' }}</strong>
-      <p>{{ mapError.includes('VITE_AMAP_KEY') ? '地图服务需要一个高德 Web JS API Key。' : mapError }}</p>
-      <button v-if="!mapError.includes('VITE_AMAP_KEY')" type="button" @click="initializeMap">再试一次</button>
+      <strong>{{ !hasMapKey ? '为记忆接入一张地图' : '地图暂时没有展开' }}</strong>
+      <p>{{ !hasMapKey ? '在设置中填写你自己的高德凭据，即可启用地图。其他功能不受影响。' : mapError }}</p>
+      <button v-if="hasMapKey" type="button" :disabled="mapInitializing" @click="initializeMap">再试一次</button>
+      <button type="button" @click="emit('configure')">前往设置</button>
     </div>
 
     <div class="map-overlay map-search-area">
@@ -256,8 +271,8 @@ function updateRangeEnd(event: Event) {
       </section>
     </Transition>
 
-    <div class="map-empty-note" v-if="!loading && !allEntries.length && !mapError"><span><IconGlyph name="map" :size="21" /></span><strong>地图还在等第一段记忆</strong><small>带有位置的记忆，会在这里慢慢亮起来。</small></div>
-    <div class="map-empty-note map-no-location" v-else-if="!loading && !visibleMemories.length && !mapError"><span><IconGlyph name="pin" :size="19" /></span><strong>这个时间里没有带位置的记忆</strong><small>没有坐标的记忆依然会留在时间墙。</small></div>
+    <div class="map-empty-note" v-if="hasMapKey && !loading && !mapInitializing && !allEntries.length && !mapError"><span><IconGlyph name="map" :size="21" /></span><strong>地图还在等第一段记忆</strong><small>带有位置的记忆，会在这里慢慢亮起来。</small></div>
+    <div class="map-empty-note map-no-location" v-else-if="hasMapKey && !loading && !mapInitializing && !visibleMemories.length && !mapError"><span><IconGlyph name="pin" :size="19" /></span><strong>这个时间里没有带位置的记忆</strong><small>没有坐标的记忆依然会留在时间墙。</small></div>
 
     <section class="map-timeline glass-card">
       <div class="timeline-topline"><div><small>沿着时间回望</small><strong>{{ timeLabel }}</strong></div><button type="button" @click="timelineMode = timelineMode === 'moment' ? 'range' : 'moment'">{{ timelineMode === 'moment' ? '选择范围' : '选择日期' }}</button></div>
