@@ -258,6 +258,7 @@ function formatBytes(bytes: number): string {
       </div>
 
       <div class="settings-content native-edge-content">
+        <div class="native-edge-boundary native-edge-boundary--top" aria-hidden="true"></div>
         <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>记忆墙的样子</h2><p>选一张喜欢的背景，调出柔和的质感。</p></div></div>
       <div class="setting-row setting-background-row">
@@ -328,6 +329,7 @@ function formatBytes(bytes: number): string {
           <p v-if="updateMessage" class="version-status" role="status" aria-live="polite">{{ updateMessage }}</p>
         </section>
 
+        <div class="native-edge-boundary native-edge-boundary--bottom" aria-hidden="true"></div>
       </div>
       <footer class="settings-edge settings-edge--bottom native-edge-panel" aria-hidden="true">
         <div class="settings-footer settings-section glass-card">

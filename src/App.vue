@@ -318,6 +318,7 @@ function cardStyle(index: number) {
           </div>
         </div>
         <div ref="wallContent" class="wall-content native-edge-content">
+        <div class="native-edge-boundary native-edge-boundary--top" aria-hidden="true"></div>
         <div ref="historySentinel" class="history-sentinel" aria-hidden="true"></div>
         <div v-if="loadingOlder" class="history-loading">正在把更早的日子翻出来…</div>
         <template v-for="(group, groupIndex) in monthGroups" :key="group.key">
@@ -368,6 +369,7 @@ function cardStyle(index: number) {
         </template>
         <div v-if="!ready" class="wall-loading"><span class="loading-orbit"></span>正在拾起你的记忆…</div>
         <div v-if="ready && !entries.length" class="empty-note">这里还很安静。<br />给生活留一个柔软的开始吧。</div>
+        <div class="native-edge-boundary native-edge-boundary--bottom" aria-hidden="true"></div>
         </div>
         <footer class="wall-edge-footer native-edge-panel" aria-hidden="true">✦ 慢慢生活，慢慢记起 ✦</footer>
         </div>

@@ -64,11 +64,15 @@ button:disabled { cursor: wait; opacity: .55; }
 .avatar-button, .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #ffffffb0; border-radius: 50%; color: #78949a; background: #ffffff80; cursor: pointer; box-shadow: 0 4px 12px #64828a12; }
 .wall-view { display: flex; height: calc(100dvh - 88px - env(safe-area-inset-top)); flex-direction: column; padding: 18px 0; }
 .wall-scroll-stage { position: relative; min-height: 0; flex: 1; overflow: hidden; touch-action: pan-y; }
-/* One oversized snap area permits free scrolling throughout the body, while
-   its two boundaries are native return positions for the decorative edges. */
-.native-edge-scroller { scroll-snap-type: y mandatory; }
-.native-edge-content { display: flow-root; min-height: 100%; scroll-snap-align: start; }
-.native-edge-panel { height: 152px; overflow: hidden; pointer-events: none; }
+/* Separate boundary targets avoid re-snapping an oversized start-aligned body
+   to its top. Proximity snapping leaves the middle of the page unconstrained. */
+.native-edge-scroller { scroll-snap-type: y proximity; }
+.native-edge-content { position: relative; display: flow-root; min-height: 100%; }
+.native-edge-boundary { position: absolute; left: 0; width: 1px; height: 1px; pointer-events: none; }
+.native-edge-boundary--top { top: 0; scroll-snap-align: start; }
+.native-edge-boundary--bottom { bottom: 0; scroll-snap-align: end; }
+/* Keep the reveal zone close to its target even on a short landscape viewport. */
+.native-edge-panel { height: min(152px, 20%); overflow: hidden; pointer-events: none; }
 @supports not (scroll-snap-type: y mandatory) {
   .native-edge-scroller > .native-edge-panel { display: none; }
 }
