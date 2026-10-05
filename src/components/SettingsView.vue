@@ -6,6 +6,7 @@ import { preparePhoto } from '../data/photos'
 import { createId } from '../data/id'
 import type { AppSettings, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
+import { useEdgePull } from '../composables/useEdgePull'
 
 const props = defineProps<{ settings: AppSettings }>()
 const emit = defineEmits<{
@@ -16,6 +17,7 @@ const emit = defineEmits<{
 const draft = ref<AppSettings>({ ...props.settings })
 const backgroundPicker = ref<HTMLInputElement>()
 const restorePicker = ref<HTMLInputElement>()
+const settingsScroller = ref<HTMLElement>()
 const backgroundUrl = ref('')
 const storageUsage = ref<{ usage?: number; quota?: number }>({})
 const entryCount = ref(0)
@@ -25,6 +27,17 @@ const toastMessage = computed(() => busy.value || feedback.value)
 const restoreArmed = ref(false)
 let backgroundObjectUrl = ''
 let feedbackTimer = 0
+const {
+  topPull: settingsTopPull,
+  bottomPull: settingsBottomPull,
+  activePull: settingsPulling,
+  stageStyle: settingsPullStyle,
+  topRevealStyle: settingsTopRevealStyle,
+  bottomRevealStyle: settingsBottomRevealStyle,
+  onTouchStart: onSettingsTouchStart,
+  onTouchMove: onSettingsTouchMove,
+  release: releaseSettingsPull,
+} = useEdgePull(settingsScroller)
 
 watch(() => props.settings, (settings) => {
   draft.value = { ...settings }
@@ -153,13 +166,25 @@ function formatBytes(bytes: number): string {
 </script>
 
 <template>
-  <main class="settings-view">
-    <div class="settings-heading">
-      <div><p class="eyebrow">A LITTLE SPACE OF YOUR OWN</p><h1>让这里更像你。</h1><p>安静地记录，也安心地保存。</p></div>
-      <div class="settings-head-mark"><IconGlyph name="settings" :size="22" /></div>
-    </div>
+  <div class="settings-shell">
+    <div
+      class="settings-scroll-stage"
+      :class="{ 'is-edge-pulling': settingsPulling }"
+      :style="settingsPullStyle"
+      @touchstart.passive="onSettingsTouchStart"
+      @touchmove="onSettingsTouchMove"
+      @touchend="releaseSettingsPull"
+      @touchcancel="releaseSettingsPull"
+    >
+      <div class="settings-edge settings-edge--top" :style="settingsTopRevealStyle" :aria-hidden="settingsTopPull === 0">
+        <div class="settings-heading">
+          <div><p class="eyebrow">A LITTLE SPACE OF YOUR OWN</p><h1>让这里更像你。</h1><p>安静地记录，也安心地保存。</p></div>
+          <div class="settings-head-mark"><IconGlyph name="settings" :size="22" /></div>
+        </div>
+      </div>
 
-    <section class="settings-section glass-card">
+      <main ref="settingsScroller" class="settings-view">
+        <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>记忆墙的样子</h2><p>选一张喜欢的背景，调出柔和的质感。</p></div></div>
       <div class="setting-row setting-background-row">
         <div class="setting-copy"><strong>背景图片</strong><small>只保存在此设备</small></div>
@@ -176,9 +201,9 @@ function formatBytes(bytes: number): string {
       <label class="setting-row range-row"><span class="setting-copy"><strong>卡片模糊度</strong><small>调整卡片后的柔焦程度</small></span><span class="range-control"><input v-model.number="draft.glassBlur" type="range" min="0" max="32" step="1" @change="persist" /><output>{{ draft.glassBlur }} px</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>卡片圆角</strong><small>柔软或更利落一点</small></span><span class="range-control"><input v-model.number="draft.cornerRadius" type="range" min="14" max="34" step="1" @change="persist" /><output>{{ draft.cornerRadius }} px</output></span></label>
       <div class="setting-row"><span class="setting-copy"><strong>主题模式</strong><small>保持明亮，或跟随设备</small></span><div class="segmented-control"><button :class="{ selected: draft.theme === 'light' }" @click="draft.theme = 'light'; persist()">浅色</button><button :class="{ selected: draft.theme === 'system' }" @click="draft.theme = 'system'; persist()">跟随设备</button></div></div>
-    </section>
+        </section>
 
-    <section class="settings-section glass-card">
+        <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="image" :size="17" /></span><div><h2>照片与位置</h2><p>让照片和地点一起，帮你记起那一天。</p></div></div>
       <label class="setting-row range-row"><span class="setting-copy"><strong>照片压缩质量</strong><small>较低体积，更省本地空间</small></span><span class="range-control"><input v-model.number="draft.imageQuality" type="range" min="45" max="100" step="1" @change="persist" /><output>{{ draft.imageQuality }}%</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>照片最长边</strong><small>首页优先使用轻量缩略图</small></span><span class="range-control"><input v-model.number="draft.maxImageDimension" type="range" min="1200" max="4000" step="200" @change="persist" /><output>{{ draft.maxImageDimension }} px</output></span></label>
@@ -188,22 +213,26 @@ function formatBytes(bytes: number): string {
       <label class="setting-row sub-setting"><span class="setting-copy"><strong>优先使用照片位置</strong><small>照片带有 GPS 时优先采用 EXIF</small></span><input class="toggle-input" v-model="draft.preferExifLocation" type="checkbox" @change="persist" /></label>
       <label class="setting-row sub-setting"><span class="setting-copy"><strong>照片无位置时使用当前定位</strong><small>只在允许记录位置时生效</small></span><input class="toggle-input" v-model="draft.currentLocationFallback" type="checkbox" @change="persist" /></label>
       <label class="setting-row"><span class="setting-copy"><strong>在界面显示精确坐标</strong><small>默认隐藏，不影响地图使用</small></span><input class="toggle-input" v-model="draft.showCoordinates" type="checkbox" @change="persist" /></label>
-    </section>
+        </section>
 
-    <section class="settings-section glass-card">
+        <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="database" :size="17" /></span><div><h2>你的数据</h2><p>记忆与照片都留在本地，不会上传到云端。你的记忆属于你，也只属于你。</p></div></div>
       <div class="storage-summary"><span class="storage-symbol"><IconGlyph name="archive" :size="16" /></span><span><strong>{{ entryCount }} 段记忆</strong><small>设备存储占用 · {{ usageText }}</small></span><button class="soft-button refresh-button" type="button" @click="refreshUsage">刷新</button></div>
       <div class="backup-actions"><button class="soft-button primary-soft" :disabled="!!busy" @click="exportData">导出全部记忆</button><button class="soft-button" :disabled="!!busy" @click="confirmRestore">从备份恢复</button><input ref="restorePicker" class="visually-hidden" type="file" accept=".zip,application/zip" @change="restoreData" /></div>
       <div v-if="restoreArmed" class="restore-confirm"><span>恢复会替换此设备上的记录和设置。</span><button class="text-button" @click="restoreArmed = false">取消</button><button class="soft-button" @click="restorePicker?.click()">选择备份文件</button></div>
       <p v-else class="backup-hint">备份包含 JSON 记录与相关照片。恢复操作会替换此设备上的现有数据。</p>
-    </section>
+        </section>
+      </main>
 
-    <footer class="settings-footer settings-section glass-card">
-      <small>Made for the moments you want to keep</small>
-      <p>把日常轻轻收好，让想起的时刻有处可寻。</p>
-    </footer>
+      <footer class="settings-edge settings-edge--bottom" :style="settingsBottomRevealStyle" :aria-hidden="settingsBottomPull === 0">
+        <div class="settings-footer settings-section glass-card">
+          <small>Made for the moments you want to keep</small>
+          <p>把日常轻轻收好，让想起的时刻有处可寻。</p>
+        </div>
+      </footer>
+    </div>
     <Transition name="settings-toast">
       <div v-if="toastMessage" class="settings-toast" role="status" aria-live="polite">{{ toastMessage }}</div>
     </Transition>
-  </main>
+  </div>
 </template>
