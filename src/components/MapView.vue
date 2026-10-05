@@ -21,6 +21,7 @@ const selectedTime = ref(Date.now())
 const rangeStart = ref(Date.now())
 const rangeEnd = ref(Date.now())
 const loading = ref(true)
+const mapInitializing = ref(false)
 const noLocationCount = ref(0)
 const allEntries = computed(() => memories.value.map((memory) => memory.entry))
 const photoUrls = new Map<string, string>()
@@ -115,6 +116,7 @@ onBeforeUnmount(() => {
 
 async function initializeMap() {
   if (!mapElement.value) return
+  mapInitializing.value = true
   provider.value?.destroy()
   provider.value = null
   mapError.value = ''
@@ -130,6 +132,8 @@ async function initializeMap() {
     }
   } catch (error) {
     mapError.value = error instanceof Error ? error.message : '地图暂时无法加载。'
+  } finally {
+    mapInitializing.value = false
   }
 }
 
@@ -225,7 +229,7 @@ function updateRangeEnd(event: Event) {
       </div>
     </div>
 
-    <div class="map-status-pill glass-card"><span class="map-pulse"></span>{{ loading ? '拾起记忆…' : `${visibleMemories.length} 个记忆点` }}</div>
+    <div v-if="loading || mapInitializing || mapError" class="map-status-pill glass-card" role="status" aria-live="polite"><span class="map-pulse"></span>{{ mapError && !loading ? '地图暂时不可用' : '拾起记忆…' }}</div>
 
     <Transition name="map-panel">
       <article v-if="selectedMemory" class="map-memory-panel glass-card">
