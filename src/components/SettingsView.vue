@@ -234,7 +234,7 @@ function formatBytes(bytes: number): string {
         <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>记忆墙的样子</h2><p>选一张喜欢的背景，调出柔和的质感。</p></div></div>
       <div class="setting-row setting-background-row">
-        <div class="setting-copy"><strong>背景图片</strong><small>只保存在此设备</small></div>
+        <div class="setting-copy"><strong>背景图片</strong><small class="background-ratio-hint">建议比例 {{ backgroundAspectRatio }}，图片边缘可能被裁切</small></div>
         <div class="background-actions">
           <div v-if="backgroundUrl" class="background-preview" :style="{ backgroundImage: `url(${backgroundUrl})` }"></div>
           <button class="soft-button" type="button" @click="backgroundPicker?.click()">{{ backgroundUrl ? '更换' : '选择图片' }}</button>
@@ -242,7 +242,6 @@ function formatBytes(bytes: number): string {
           <input ref="backgroundPicker" class="visually-hidden" type="file" accept="image/*" @change="chooseBackground" />
         </div>
       </div>
-      <p class="background-ratio-hint">建议比例 {{ backgroundAspectRatio }}，铺满屏幕时边缘可能裁切</p>
       <label class="setting-row range-row"><span class="setting-copy"><strong>背景柔和度</strong><small>让照片背景更轻盈</small></span><span class="range-control"><input v-model.number="draft.backgroundBlur" type="range" min="0" max="18" step="1" @change="persist" /><output>{{ draft.backgroundBlur }} px</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>背景明度</strong><small>调整背景上的柔光</small></span><span class="range-control"><input v-model.number="draft.backgroundDim" type="range" min="0" max="55" step="1" @change="persist" /><output>{{ draft.backgroundDim }}%</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>卡片透明度</strong><small>调节卡片与背景的融合感</small></span><span class="range-control"><input v-model.number="draft.glassOpacity" type="range" min="40" max="96" step="1" @change="persist" /><output>{{ draft.glassOpacity }}%</output></span></label>

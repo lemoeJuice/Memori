@@ -268,7 +268,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .setting-copy strong { color: #647e82; font-size: 10px; font-weight: 500; }
 .setting-copy small { margin-top: 4px; color: #a0b0b0; font-size: 9px; line-height: 1.5; }
 .setting-background-row { min-height: 62px; }
-.background-ratio-hint { margin: -2px 1px 10px; color: #91a7a8; font-size: 9px; line-height: 1.55; }
+.setting-copy small.background-ratio-hint { margin-top: 4px; color: #91a7a8; font-size: 9px; line-height: 1.55; }
 .background-actions { display: flex; align-items: center; gap: 8px; }
 .background-preview { width: 67px; height: 39px; border: 2px solid #fff; border-radius: 11px; background-position: center; background-size: cover; box-shadow: 0 4px 10px #4a686717; }
 .soft-button { min-height: 32px; padding: 0 13px; border: 1px solid #ffffff; border-radius: 17px; color: #69858a; background: #ffffff9c; box-shadow: 0 3px 10px #607f8410; cursor: pointer; font-size: 9px; white-space: nowrap; }
