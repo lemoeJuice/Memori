@@ -41,6 +41,7 @@ const {
 let observer: IntersectionObserver | undefined
 let didSetInitialPosition = false
 let wallpaperObjectUrl = ''
+let noticeTimer = 0
 
 const visibleEntries = computed(() => entries.value)
 const monthGroups = computed(() => {
@@ -95,6 +96,7 @@ watch(view, (current) => {
 onBeforeUnmount(() => {
   observer?.disconnect()
   systemColorScheme.removeEventListener('change', syncThemeColor)
+  if (noticeTimer) window.clearTimeout(noticeTimer)
   if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl)
 })
 
@@ -117,7 +119,7 @@ onMounted(async () => {
     }, { root: wallScroller.value, rootMargin: '400px 0px 0px' })
     if (historySentinel.value) observer.observe(historySentinel.value)
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : '无法读取本地记忆'
+    showNotice(error instanceof Error ? error.message : '无法读取本地记忆')
     ready.value = true
   }
 })
@@ -137,7 +139,7 @@ async function loadOlder() {
     }
     hasOlder.value = page.length === 40
   } catch {
-    notice.value = '暂时无法载入更早的记忆。'
+    showNotice('暂时无法载入更早的记忆。')
   } finally {
     loadingOlder.value = false
   }
@@ -161,10 +163,9 @@ async function saveEntry(entry: MemoryEntry, photo?: StoredPhoto) {
     else entries.value.push(entry)
     editingId.value = undefined
     composerOpen.value = false
-    notice.value = savedWithoutOriginal ? '记忆已保存；设备空间有限，未保留原图。' : '这段记忆，已经好好收下了。'
-    window.setTimeout(() => { notice.value = '' }, 2600)
+    showNotice(savedWithoutOriginal ? '记忆已保存；设备空间有限，未保留原图。' : '这段记忆，已经好好收下了。')
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : '保存失败，请稍后重试。'
+    showNotice(error instanceof Error ? error.message : '保存失败，请稍后重试。')
   } finally {
     savingMemory.value = false
   }
@@ -175,9 +176,9 @@ async function removeEntry(id: string) {
     await deleteMemory(id)
     entries.value = entries.value.filter((entry) => entry.id !== id)
     if (editingId.value === id) editingId.value = undefined
-    notice.value = '这段记忆已移除。'
+    showNotice('这段记忆已移除。')
   } catch {
-    notice.value = '删除失败，请稍后重试。'
+    showNotice('删除失败，请稍后重试。')
   }
 }
 
@@ -195,7 +196,7 @@ async function updateSettings(updated: AppSettings) {
       await deletePhotoIfUnused(previousBackground)
     }
   } catch {
-    notice.value = '设置暂时无法保存，请稍后重试。'
+    showNotice('设置暂时无法保存，请稍后重试。')
   }
 }
 
@@ -204,13 +205,22 @@ async function updateBackground(photo: StoredPhoto) {
     await saveStoredPhoto(photo)
     await updateSettings({ ...settings.value!, backgroundPhotoId: photo.id })
   } catch {
-    notice.value = '无法保存背景图片。'
+    showNotice('无法保存背景图片。')
   }
 }
 
 function afterRestore(count: number) {
-  notice.value = `已从备份恢复 ${count} 段记忆，正在重新载入…`
+  showNotice(`已从备份恢复 ${count} 段记忆，正在重新载入…`)
   window.setTimeout(() => window.location.reload(), 900)
+}
+
+function showNotice(message: string) {
+  notice.value = message
+  if (noticeTimer) window.clearTimeout(noticeTimer)
+  noticeTimer = window.setTimeout(() => {
+    notice.value = ''
+    noticeTimer = 0
+  }, 2800)
 }
 
 function editEntry(entry: MemoryEntry) {

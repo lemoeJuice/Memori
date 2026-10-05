@@ -105,7 +105,7 @@ function save() {
     createdAt,
     updatedAt: Date.now(),
     photo: photoId ? { id: photoId, exifTakenAt: photoInput.value?.exifTakenAt ?? props.existing?.photo?.exifTakenAt } : undefined,
-    location: location.value,
+    location: location.value ? { ...location.value } : undefined,
     placeLabel: placeLabel.value.trim() || undefined,
     text: text.value.trim() || undefined,
     favorite: props.existing?.favorite ?? false,

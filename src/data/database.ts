@@ -96,8 +96,13 @@ export async function saveMemory(entry: MemoryEntry, photo?: StoredPhoto): Promi
   const db = await openDatabase()
   const tx = db.transaction([ENTRY_STORE, PHOTO_STORE], 'readwrite')
   const done = transactionDone(tx)
-  if (photo) tx.objectStore(PHOTO_STORE).put(photo)
-  tx.objectStore(ENTRY_STORE).put(entry)
+  const plainEntry: MemoryEntry = {
+    ...entry,
+    photo: entry.photo ? { ...entry.photo } : undefined,
+    location: entry.location ? { ...entry.location } : undefined,
+  }
+  if (photo) tx.objectStore(PHOTO_STORE).put({ ...photo })
+  tx.objectStore(ENTRY_STORE).put(plainEntry)
   await done
   if (previous?.photo && previous.photo.id !== entry.photo?.id) {
     try { await deletePhotoIfUnused(previous.photo.id) } catch { /* Stale photos can be cleaned up later. */ }
