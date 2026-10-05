@@ -25,6 +25,8 @@ const loadingOlder = ref(false)
 const hasOlder = ref(true)
 const notice = ref('')
 const wallpaperUrl = ref('')
+const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
 const {
   topPull: wallTopPull,
   bottomPull: wallBottomPull,
@@ -79,16 +81,26 @@ watch(() => settings.value?.backgroundPhotoId, async (id) => {
   wallpaperUrl.value = wallpaperObjectUrl
 })
 
+function syncThemeColor() {
+  const isDark = settings.value?.theme === 'system' && systemColorScheme.matches
+  if (themeColorMeta) themeColorMeta.content = isDark ? '#202e30' : '#edf4f4'
+}
+
+watch(() => settings.value?.theme, syncThemeColor, { immediate: true })
+
 watch(view, (current) => {
   if (current === 'map') mapMounted.value = true
 })
 
 onBeforeUnmount(() => {
   observer?.disconnect()
+  systemColorScheme.removeEventListener('change', syncThemeColor)
   if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl)
 })
 
 onMounted(async () => {
+  systemColorScheme.addEventListener('change', syncThemeColor)
+  syncThemeColor()
   try {
     const [page, savedSettings] = await Promise.all([getEntriesPage(undefined, 40), getSettings()])
     entries.value = page

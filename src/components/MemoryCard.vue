@@ -14,25 +14,57 @@ const emit = defineEmits<{
 
 const expanded = ref(false)
 const confirmDelete = ref(false)
+const cardElement = ref<HTMLElement>()
 const photoUrl = ref('')
 const cardPhoto = computed(() => props.entry.photo?.id)
 const date = computed(() => new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(props.entry.createdAt))
+let photoObserver: IntersectionObserver | undefined
+let disposed = false
 
-async function loadPhoto() {
-  if (photoUrl.value) URL.revokeObjectURL(photoUrl.value)
-  photoUrl.value = ''
-  if (!cardPhoto.value) return
-  const photo = await getPhoto(cardPhoto.value)
-  if (photo) photoUrl.value = URL.createObjectURL(photo.thumbnail)
+function observePhoto() {
+  photoObserver?.disconnect()
+  photoObserver = undefined
+  const photoId = cardPhoto.value
+  if (!photoId || !cardElement.value) return
+  if (!('IntersectionObserver' in window)) {
+    void loadPhoto(photoId)
+    return
+  }
+  photoObserver = new IntersectionObserver((items) => {
+    if (!items.some((item) => item.isIntersecting)) return
+    photoObserver?.disconnect()
+    photoObserver = undefined
+    void loadPhoto(photoId)
+  }, { root: cardElement.value.closest('.wall-scroller'), rootMargin: '280px 0px' })
+  photoObserver.observe(cardElement.value)
 }
 
-onMounted(loadPhoto)
-watch(cardPhoto, loadPhoto)
-onBeforeUnmount(() => { if (photoUrl.value) URL.revokeObjectURL(photoUrl.value) })
+async function loadPhoto(photoId: string) {
+  const photo = await getPhoto(photoId)
+  if (!photo || disposed || cardPhoto.value !== photoId) return
+  const nextUrl = URL.createObjectURL(photo.thumbnail)
+  const previousUrl = photoUrl.value
+  photoUrl.value = nextUrl
+  if (previousUrl) URL.revokeObjectURL(previousUrl)
+}
+
+onMounted(observePhoto)
+watch(cardPhoto, () => {
+  photoObserver?.disconnect()
+  photoObserver = undefined
+  if (photoUrl.value) URL.revokeObjectURL(photoUrl.value)
+  photoUrl.value = ''
+  observePhoto()
+})
+onBeforeUnmount(() => {
+  disposed = true
+  photoObserver?.disconnect()
+  if (photoUrl.value) URL.revokeObjectURL(photoUrl.value)
+})
 </script>
 
 <template>
-  <article class="memory-card glass-card" :class="{ 'memory-card--expanded': expanded }">
+  <article ref="cardElement" class="memory-card glass-card" :class="{ 'memory-card--expanded': expanded }">
     <button class="memory-card__body" type="button" :aria-expanded="expanded" @click="expanded = !expanded">
       <img v-if="photoUrl" class="memory-card__photo" :src="photoUrl" alt="记忆照片" loading="lazy" />
       <div v-else class="memory-card__no-photo" aria-hidden="true"><span><IconGlyph name="sparkle" :size="18" /></span></div>
