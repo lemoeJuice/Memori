@@ -62,7 +62,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .local-status i { width: 6px; height: 6px; border-radius: 50%; background: #91b7a6; box-shadow: 0 0 0 3px #91b7a622; }
 .avatar-button, .icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #ffffffb0; border-radius: 50%; color: #78949a; background: #ffffff80; cursor: pointer; box-shadow: 0 4px 12px #64828a12; }
 .wall-view { display: flex; height: calc(100dvh - 88px); flex-direction: column; padding: 18px 0; }
-.wall-scroll-stage { position: relative; min-height: 0; flex: 1; overflow: hidden; }
+.wall-scroll-stage { position: relative; min-height: 0; flex: 1; overflow: hidden; touch-action: pan-y; }
 .wall-edge-hero, .wall-edge-footer { position: absolute; z-index: 0; right: 0; left: 0; height: 152px; overflow: hidden; pointer-events: none; will-change: transform; transition: transform .34s cubic-bezier(.2,.75,.25,1), opacity .2s ease; }
 .wall-edge-hero { top: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0 10px 15px; transform: translate3d(0, calc(var(--edge-pull-top, 0px) - 152px), 0); }
 .wall-edge-hero > div { width: min(100%, 560px); }
@@ -78,7 +78,8 @@ button:disabled { cursor: wait; opacity: .55; }
 .today-note small, .today-note strong { display: block; }
 .today-note small { margin-bottom: 3px; color: #a0b0b2; font-size: 9px; }
 .today-note strong { color: #627d83; font-size: 11px; font-weight: 500; }
-.wall-scroller { display: flex; flex-direction: column; padding: 3px 10px 28px; overflow-y: auto; overscroll-behavior: none; scrollbar-width: thin; scrollbar-color: #8da9a52d transparent; scroll-behavior: auto; touch-action: pan-y; }
+.wall-scroller { display: flex; flex-direction: column; padding: 3px 10px 28px; overflow-y: auto; overscroll-behavior: none; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: #8da9a52d transparent; scroll-behavior: auto; touch-action: pan-y; }
+.memory-card__body, .memory-card__actions button, .new-memory-card { touch-action: pan-y; }
 .wall-scroller::-webkit-scrollbar { width: 6px; }
 .wall-scroller::-webkit-scrollbar-thumb { border-radius: 10px; background: #8da9a52d; }
 .history-sentinel { height: 1px; }

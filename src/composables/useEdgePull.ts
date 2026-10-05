@@ -8,7 +8,6 @@ export function useEdgePull(scroller: Readonly<Ref<HTMLElement | undefined>>, ma
   let edge: 'top' | 'bottom' | undefined
   let previousY = 0
   let pullOriginY = 0
-  let gestureEligible = true
 
   const stageStyle = computed(() => ({
     '--edge-pull-offset': `${topPull.value - bottomPull.value}px`,
@@ -31,8 +30,6 @@ export function useEdgePull(scroller: Readonly<Ref<HTMLElement | undefined>>, ma
       return
     }
     previousY = event.touches[0].clientY
-    const target = event.target
-    gestureEligible = !(target instanceof Element && target.closest('button, input, textarea, select, a, [contenteditable="true"]'))
     edge = undefined
     topPull.value = 0
     bottomPull.value = 0
@@ -48,7 +45,6 @@ export function useEdgePull(scroller: Readonly<Ref<HTMLElement | undefined>>, ma
     if (!element) return
 
     if (!edge) {
-      if (!gestureEligible) return
       if (Math.abs(delta) < 2) return
       const atTop = element.scrollTop <= 0
       const atBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 1
