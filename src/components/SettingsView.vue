@@ -2,7 +2,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getAllEntries, getPhoto } from '../data/database'
 import { downloadBlob, exportBackup, importBackup } from '../data/export'
-import { preparePhoto } from '../data/photos'
 import { createId } from '../data/id'
 import type { AppSettings, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
@@ -95,20 +94,15 @@ async function chooseBackground(event: Event) {
   if (!file) return
   busy.value = '正在准备背景图片…'
   try {
-    const prepared = await preparePhoto(file, {
-      ...draft.value,
-      preserveOriginal: false,
-      maxImageDimension: Math.min(draft.value.maxImageDimension, 1800),
-      imageQuality: Math.min(draft.value.imageQuality, 76),
-    })
+    const mimeType = imageMimeType(file)
+    const originalFile = file.type === mimeType ? file : file.slice(0, file.size, mimeType)
     const photo: StoredPhoto = {
       id: createId(),
-      thumbnail: prepared.thumbnail,
-      original: prepared.original,
-      mimeType: prepared.original?.type || prepared.thumbnail.type,
+      thumbnail: originalFile,
+      mimeType,
       fileName: file.name,
-      width: prepared.width,
-      height: prepared.height,
+      width: 0,
+      height: 0,
       createdAt: Date.now(),
     }
     draft.value.backgroundPhotoId = photo.id
@@ -121,6 +115,16 @@ async function chooseBackground(event: Event) {
   } finally {
     if (backgroundPicker.value) backgroundPicker.value.value = ''
   }
+}
+
+function imageMimeType(file: File): string {
+  if (file.type) return file.type
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  const mimeTypes: Record<string, string> = {
+    avif: 'image/avif', bmp: 'image/bmp', gif: 'image/gif', heic: 'image/heic', heif: 'image/heif',
+    jpeg: 'image/jpeg', jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  }
+  return mimeTypes[extension ?? ''] ?? 'application/octet-stream'
 }
 
 function clearBackground() {
@@ -187,7 +191,7 @@ function formatBytes(bytes: number): string {
         <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>记忆墙的样子</h2><p>选一张喜欢的背景，调出柔和的质感。</p></div></div>
       <div class="setting-row setting-background-row">
-        <div class="setting-copy"><strong>背景图片</strong><small>只保存在此设备</small></div>
+        <div class="setting-copy"><strong>背景图片</strong><small>仅保存在此设备，不压缩原图；建议横图，填充时边缘可能裁切</small></div>
         <div class="background-actions">
           <div v-if="backgroundUrl" class="background-preview" :style="{ backgroundImage: `url(${backgroundUrl})` }"></div>
           <button class="soft-button" type="button" @click="backgroundPicker?.click()">{{ backgroundUrl ? '更换' : '选择图片' }}</button>

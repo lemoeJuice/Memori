@@ -29,10 +29,10 @@ export async function exportBackup(): Promise<Blob> {
   if (settings.backgroundPhotoId) {
     const background = await getPhoto(settings.backgroundPhotoId)
     if (background) {
-      archive.backgroundThumbnailFile = `photos/${background.id}-thumb.webp`
+      archive.backgroundThumbnailFile = `photos/${background.id}.${extensionForMime(background.mimeType || background.thumbnail.type)}`
       zip.file(archive.backgroundThumbnailFile, background.thumbnail)
       if (background.original) {
-        archive.backgroundPhotoFile = `photos/${background.id}.${extensionForMime(background.original.type)}`
+        archive.backgroundPhotoFile = `photos/${background.id}-original.${extensionForMime(background.original.type)}`
         zip.file(archive.backgroundPhotoFile, background.original)
       }
     }
@@ -63,9 +63,9 @@ export async function importBackup(file: File): Promise<number> {
       delete entry.photo
       continue
     }
-    const thumbnail = await thumb.async('blob')
+    const thumbnail = blobWithPathMime(await thumb.async('blob'), thumbPath!)
     const originalEntry = originalPath ? zip.file(originalPath) : null
-    const original = originalEntry ? await originalEntry.async('blob') : undefined
+    const original = originalEntry ? blobWithPathMime(await originalEntry.async('blob'), originalPath!) : undefined
     photos.push({
       id: entry.photo.id,
       thumbnail,
@@ -80,9 +80,9 @@ export async function importBackup(file: File): Promise<number> {
   if (data.settings?.backgroundPhotoId && data.backgroundThumbnailFile) {
     const thumbnailEntry = zip.file(data.backgroundThumbnailFile)
     if (thumbnailEntry && !photos.some((photo) => photo.id === data.settings?.backgroundPhotoId)) {
-      const thumbnail = await thumbnailEntry.async('blob')
+      const thumbnail = blobWithPathMime(await thumbnailEntry.async('blob'), data.backgroundThumbnailFile)
       const originalEntry = data.backgroundPhotoFile ? zip.file(data.backgroundPhotoFile) : null
-      const original = originalEntry ? await originalEntry.async('blob') : undefined
+      const original = originalEntry ? blobWithPathMime(await originalEntry.async('blob'), data.backgroundPhotoFile!) : undefined
       photos.push({
         id: data.settings.backgroundPhotoId,
         thumbnail,
@@ -108,7 +108,20 @@ function extensionForMime(mimeType: string): string {
   if (mimeType.includes('png')) return 'png'
   if (mimeType.includes('gif')) return 'gif'
   if (mimeType.includes('avif')) return 'avif'
+  if (mimeType.includes('heic')) return 'heic'
+  if (mimeType.includes('heif')) return 'heif'
+  if (mimeType.includes('bmp')) return 'bmp'
   return 'webp'
+}
+
+function blobWithPathMime(blob: Blob, path: string): Blob {
+  const extension = path.split('.').pop()?.toLowerCase()
+  const mimeTypes: Record<string, string> = {
+    avif: 'image/avif', bmp: 'image/bmp', gif: 'image/gif', heic: 'image/heic', heif: 'image/heif',
+    jpeg: 'image/jpeg', jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  }
+  const mimeType = mimeTypes[extension ?? '']
+  return mimeType && blob.type !== mimeType ? blob.slice(0, blob.size, mimeType) : blob
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {
