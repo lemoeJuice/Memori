@@ -320,7 +320,7 @@ function cardStyle(index: number) {
         :class="{ 'is-edge-pulling': wallPulling }"
         :style="wallPullStyle"
         @touchstart.passive="onWallTouchStart"
-        @touchmove="onWallTouchMove"
+        @touchmove.passive="onWallTouchMove"
         @touchend="releaseWallPull"
         @touchcancel="releaseWallPull"
       >

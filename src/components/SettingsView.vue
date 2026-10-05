@@ -219,7 +219,7 @@ function formatBytes(bytes: number): string {
       :class="{ 'is-edge-pulling': settingsPulling }"
       :style="settingsPullStyle"
       @touchstart.passive="onSettingsTouchStart"
-      @touchmove="onSettingsTouchMove"
+      @touchmove.passive="onSettingsTouchMove"
       @touchend="releaseSettingsPull"
       @touchcancel="releaseSettingsPull"
     >
@@ -272,11 +272,12 @@ function formatBytes(bytes: number): string {
         </section>
 
         <section class="settings-section glass-card">
-          <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>版本</h2><p>当前版本 v{{ appPackage.version }}</p></div></div>
-          <div class="version-action-row">
-            <p v-if="updateMessage" class="version-status" role="status" aria-live="polite">{{ updateMessage }}</p>
+          <div class="settings-section-title">
+            <span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span>
+            <div><h2>版本</h2><p>当前版本 v{{ appPackage.version }}</p></div>
             <button class="soft-button" type="button" :disabled="isCheckingUpdate" @click="checkForUpdates">{{ isCheckingUpdate ? '检查中…' : '检查更新' }}</button>
           </div>
+          <p v-if="updateMessage" class="version-status" role="status" aria-live="polite">{{ updateMessage }}</p>
         </section>
       </main>
 
