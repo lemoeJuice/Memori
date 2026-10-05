@@ -5,7 +5,6 @@ import MemoryComposer from './components/MemoryComposer.vue'
 import IconGlyph from './components/IconGlyph.vue'
 import MapView from './components/MapView.vue'
 import SettingsView from './components/SettingsView.vue'
-import { useEdgePull } from './composables/useEdgePull'
 import { deleteMemory, deletePhotoIfUnused, getEntriesPage, getPhoto, getSettings, saveMemory, saveSettings, saveStoredPhoto } from './data/database'
 import { downloadBlob } from './data/export'
 import type { AppSettings, MemoryEntry, StoredPhoto } from './data/types'
@@ -20,7 +19,7 @@ const composerOpen = ref(false)
 const savingMemory = ref(false)
 const editingId = ref<string>()
 const wallScroller = ref<HTMLElement>()
-const wallStage = ref<HTMLElement>()
+const wallContent = ref<HTMLElement>()
 const historySentinel = ref<HTMLElement>()
 const loadingOlder = ref(false)
 const hasOlder = ref(true)
@@ -28,7 +27,6 @@ const notice = ref('')
 const wallpaperUrl = ref('')
 const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
-const { release: releaseWallPull } = useEdgePull(wallStage, wallScroller, () => !hasOlder.value && !loadingOlder.value)
 let observer: IntersectionObserver | undefined
 let didSetInitialPosition = false
 let wallpaperObjectUrl = ''
@@ -81,12 +79,7 @@ function syncThemeColor() {
 watch(() => settings.value?.theme, syncThemeColor, { immediate: true })
 
 watch(view, (current) => {
-  releaseWallPull()
   if (current === 'map') mapMounted.value = true
-})
-
-watch([hasOlder, loadingOlder], () => {
-  if (hasOlder.value || loadingOlder.value) releaseWallPull()
 })
 
 onBeforeUnmount(() => {
@@ -106,8 +99,11 @@ onMounted(async () => {
     hasOlder.value = page.length === 40
     ready.value = true
     await nextTick()
-    if (!didSetInitialPosition && wallScroller.value) {
-      wallScroller.value.scrollTop = page.length ? wallScroller.value.scrollHeight : 0
+    if (!didSetInitialPosition && wallScroller.value && wallContent.value) {
+      const content = wallContent.value
+      wallScroller.value.scrollTop = page.length
+        ? Math.max(content.offsetTop, content.offsetTop + content.offsetHeight - wallScroller.value.clientHeight)
+        : content.offsetTop
       didSetInitialPosition = true
     }
     observer = new IntersectionObserver((changes) => {
@@ -130,14 +126,15 @@ async function loadOlder() {
     const page = await getEntriesPage(entries.value[0].createdAt, 40)
     if (page.length) {
       entries.value = [...page, ...entries.value]
-      await nextTick()
-      if (scroller) scroller.scrollTop = beforeTop + (scroller.scrollHeight - beforeHeight)
     }
     hasOlder.value = page.length === 40
   } catch {
     showNotice('暂时无法载入更早的记忆。')
   } finally {
     loadingOlder.value = false
+    await nextTick()
+    // Include the top edge area when the final history page makes it available.
+    if (scroller) scroller.scrollTop = beforeTop + (scroller.scrollHeight - beforeHeight)
   }
 }
 
@@ -311,15 +308,16 @@ function cardStyle(index: number) {
     </header>
 
     <main v-show="view === 'wall'" class="wall-view">
-      <div ref="wallStage" class="wall-scroll-stage edge-pull-stage">
-        <div class="wall-edge-hero edge-pull-panel" data-edge-reveal="top" aria-hidden="true">
+      <div class="wall-scroll-stage">
+        <div ref="wallScroller" class="wall-scroller native-edge-scroller">
+        <div v-if="!hasOlder" class="wall-edge-hero native-edge-panel" aria-hidden="true">
           <div>
             <p class="eyebrow">YOUR DAYS, GENTLY GATHERED</p>
             <h1>日子有痕，<em>记忆有处。</em></h1>
             <p class="intro-copy">每个时刻都值得被轻轻收好。</p>
           </div>
         </div>
-        <div ref="wallScroller" class="wall-scroller edge-pull-surface">
+        <div ref="wallContent" class="wall-content native-edge-content">
         <div ref="historySentinel" class="history-sentinel" aria-hidden="true"></div>
         <div v-if="loadingOlder" class="history-loading">正在把更早的日子翻出来…</div>
         <template v-for="(group, groupIndex) in monthGroups" :key="group.key">
@@ -371,7 +369,8 @@ function cardStyle(index: number) {
         <div v-if="!ready" class="wall-loading"><span class="loading-orbit"></span>正在拾起你的记忆…</div>
         <div v-if="ready && !entries.length" class="empty-note">这里还很安静。<br />给生活留一个柔软的开始吧。</div>
         </div>
-        <footer class="wall-edge-footer edge-pull-panel" data-edge-reveal="bottom" aria-hidden="true">✦ 慢慢生活，慢慢记起 ✦</footer>
+        <footer class="wall-edge-footer native-edge-panel" aria-hidden="true">✦ 慢慢生活，慢慢记起 ✦</footer>
+        </div>
       </div>
     </main>
 
