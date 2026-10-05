@@ -6,7 +6,6 @@ import { createId } from '../data/id'
 import { checkForUpdates as requestUpdateCheck } from '../pwa'
 import type { AppSettings, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
-import { useEdgePull } from '../composables/useEdgePull'
 import appPackage from '../../package.json'
 
 const props = defineProps<{ settings: AppSettings }>()
@@ -18,7 +17,6 @@ const emit = defineEmits<{
 const draft = ref<AppSettings>({ ...props.settings })
 const backgroundPicker = ref<HTMLInputElement>()
 const restorePicker = ref<HTMLInputElement>()
-const settingsScroller = ref<HTMLElement>()
 const backgroundUrl = ref('')
 const backgroundAspectRatio = ref(currentScreenAspectRatio())
 const storageUsage = ref<{ usage?: number; quota?: number }>({})
@@ -32,17 +30,6 @@ const restoreArmed = ref(false)
 let backgroundObjectUrl = ''
 let feedbackTimer = 0
 let updateTimer = 0
-const {
-  topPull: settingsTopPull,
-  bottomPull: settingsBottomPull,
-  activePull: settingsPulling,
-  stageStyle: settingsPullStyle,
-  topRevealStyle: settingsTopRevealStyle,
-  bottomRevealStyle: settingsBottomRevealStyle,
-  onTouchStart: onSettingsTouchStart,
-  onTouchMove: onSettingsTouchMove,
-  release: releaseSettingsPull,
-} = useEdgePull(settingsScroller)
 
 watch(() => props.settings, (settings) => {
   draft.value = { ...settings }
@@ -214,23 +201,14 @@ function formatBytes(bytes: number): string {
 
 <template>
   <div class="settings-shell">
-    <div
-      class="settings-scroll-stage"
-      :class="{ 'is-edge-pulling': settingsPulling }"
-      :style="settingsPullStyle"
-      @touchstart.passive="onSettingsTouchStart"
-      @touchmove.passive="onSettingsTouchMove"
-      @touchend="releaseSettingsPull"
-      @touchcancel="releaseSettingsPull"
-    >
-      <div class="settings-edge settings-edge--top" :style="settingsTopRevealStyle" :aria-hidden="settingsTopPull === 0">
+      <main class="settings-view">
+      <div class="settings-edge settings-edge--top">
         <div class="settings-heading">
           <div><p class="eyebrow">A LITTLE SPACE OF YOUR OWN</p><h1>让这里更像你。</h1><p>安静地记录，也安心地保存。</p></div>
           <div class="settings-head-mark"><IconGlyph name="settings" :size="22" /></div>
         </div>
       </div>
 
-      <main ref="settingsScroller" class="settings-view">
         <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>记忆墙的样子</h2><p>选一张喜欢的背景，调出柔和的质感。</p></div></div>
       <div class="setting-row setting-background-row">
@@ -278,15 +256,14 @@ function formatBytes(bytes: number): string {
           </div>
           <p v-if="updateMessage" class="version-status" role="status" aria-live="polite">{{ updateMessage }}</p>
         </section>
-      </main>
 
-      <footer class="settings-edge settings-edge--bottom" :style="settingsBottomRevealStyle" :aria-hidden="settingsBottomPull === 0">
+      <footer class="settings-edge settings-edge--bottom">
         <div class="settings-footer settings-section glass-card">
           <small>Made for the moments you want to keep</small>
           <p>把日常轻轻收好，让想起的时刻有处可寻。</p>
         </div>
       </footer>
-    </div>
+      </main>
     <Transition name="settings-toast">
       <div v-if="toastMessage" class="settings-toast" role="status" aria-live="polite">{{ toastMessage }}</div>
     </Transition>
