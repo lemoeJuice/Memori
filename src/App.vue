@@ -5,6 +5,7 @@ import MemoryComposer from './components/MemoryComposer.vue'
 import IconGlyph from './components/IconGlyph.vue'
 import MapView from './components/MapView.vue'
 import SettingsView from './components/SettingsView.vue'
+import { useEdgePull } from './composables/useEdgePull'
 import { deleteMemory, deletePhotoIfUnused, getEntriesPage, getPhoto, getSettings, saveMemory, saveSettings, saveStoredPhoto } from './data/database'
 import { downloadBlob } from './data/export'
 import type { AppSettings, MemoryEntry, StoredPhoto } from './data/types'
@@ -19,6 +20,7 @@ const composerOpen = ref(false)
 const savingMemory = ref(false)
 const editingId = ref<string>()
 const wallScroller = ref<HTMLElement>()
+const wallStage = ref<HTMLElement>()
 const historySentinel = ref<HTMLElement>()
 const loadingOlder = ref(false)
 const hasOlder = ref(true)
@@ -26,6 +28,7 @@ const notice = ref('')
 const wallpaperUrl = ref('')
 const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
+const { release: releaseWallPull } = useEdgePull(wallStage, wallScroller, () => !hasOlder.value && !loadingOlder.value)
 let observer: IntersectionObserver | undefined
 let didSetInitialPosition = false
 let wallpaperObjectUrl = ''
@@ -78,7 +81,12 @@ function syncThemeColor() {
 watch(() => settings.value?.theme, syncThemeColor, { immediate: true })
 
 watch(view, (current) => {
+  releaseWallPull()
   if (current === 'map') mapMounted.value = true
+})
+
+watch([hasOlder, loadingOlder], () => {
+  if (hasOlder.value || loadingOlder.value) releaseWallPull()
 })
 
 onBeforeUnmount(() => {
@@ -303,15 +311,15 @@ function cardStyle(index: number) {
     </header>
 
     <main v-show="view === 'wall'" class="wall-view">
-      <div class="wall-scroll-stage">
-        <div ref="wallScroller" class="wall-scroller">
-        <div v-if="!hasOlder && !loadingOlder" class="wall-edge-hero">
+      <div ref="wallStage" class="wall-scroll-stage edge-pull-stage">
+        <div class="wall-edge-hero edge-pull-panel" data-edge-reveal="top" aria-hidden="true">
           <div>
             <p class="eyebrow">YOUR DAYS, GENTLY GATHERED</p>
             <h1>日子有痕，<em>记忆有处。</em></h1>
             <p class="intro-copy">每个时刻都值得被轻轻收好。</p>
           </div>
         </div>
+        <div ref="wallScroller" class="wall-scroller edge-pull-surface">
         <div ref="historySentinel" class="history-sentinel" aria-hidden="true"></div>
         <div v-if="loadingOlder" class="history-loading">正在把更早的日子翻出来…</div>
         <template v-for="(group, groupIndex) in monthGroups" :key="group.key">
@@ -362,8 +370,8 @@ function cardStyle(index: number) {
         </template>
         <div v-if="!ready" class="wall-loading"><span class="loading-orbit"></span>正在拾起你的记忆…</div>
         <div v-if="ready && !entries.length" class="empty-note">这里还很安静。<br />给生活留一个柔软的开始吧。</div>
-        <footer class="wall-edge-footer">✦ 慢慢生活，慢慢记起 ✦</footer>
         </div>
+        <footer class="wall-edge-footer edge-pull-panel" data-edge-reveal="bottom" aria-hidden="true">✦ 慢慢生活，慢慢记起 ✦</footer>
       </div>
     </main>
 

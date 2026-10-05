@@ -6,6 +6,7 @@ import { createId } from '../data/id'
 import { checkForUpdates as requestUpdateCheck } from '../pwa'
 import type { AppSettings, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
+import { useEdgePull } from '../composables/useEdgePull'
 import appPackage from '../../package.json'
 
 const props = defineProps<{ settings: AppSettings }>()
@@ -17,6 +18,9 @@ const emit = defineEmits<{
 const draft = ref<AppSettings>({ ...props.settings })
 const backgroundPicker = ref<HTMLInputElement>()
 const restorePicker = ref<HTMLInputElement>()
+const settingsStage = ref<HTMLElement>()
+const settingsScroller = ref<HTMLElement>()
+useEdgePull(settingsStage, settingsScroller)
 const backgroundUrl = ref('')
 const backgroundAspectRatio = ref(currentScreenAspectRatio())
 const storageUsage = ref<{ usage?: number; quota?: number }>({})
@@ -200,15 +204,15 @@ function formatBytes(bytes: number): string {
 </script>
 
 <template>
-  <div class="settings-shell">
-      <main class="settings-view">
-      <div class="settings-edge settings-edge--top">
+  <div ref="settingsStage" class="settings-shell edge-pull-stage">
+      <div class="settings-edge settings-edge--top edge-pull-panel" data-edge-reveal="top" aria-hidden="true">
         <div class="settings-heading">
           <div><p class="eyebrow">A LITTLE SPACE OF YOUR OWN</p><h1>让这里更像你。</h1><p>安静地记录，也安心地保存。</p></div>
           <div class="settings-head-mark"><IconGlyph name="settings" :size="22" /></div>
         </div>
       </div>
 
+      <main ref="settingsScroller" class="settings-view edge-pull-surface">
         <section class="settings-section glass-card">
       <div class="settings-section-title"><span class="settings-icon"><IconGlyph name="sparkle" :size="17" /></span><div><h2>记忆墙的样子</h2><p>选一张喜欢的背景，调出柔和的质感。</p></div></div>
       <div class="setting-row setting-background-row">
@@ -257,13 +261,13 @@ function formatBytes(bytes: number): string {
           <p v-if="updateMessage" class="version-status" role="status" aria-live="polite">{{ updateMessage }}</p>
         </section>
 
-      <footer class="settings-edge settings-edge--bottom">
+      </main>
+      <footer class="settings-edge settings-edge--bottom edge-pull-panel" data-edge-reveal="bottom" aria-hidden="true">
         <div class="settings-footer settings-section glass-card">
           <small>Made for the moments you want to keep</small>
           <p>把日常轻轻收好，让想起的时刻有处可寻。</p>
         </div>
       </footer>
-      </main>
     <Transition name="settings-toast">
       <div v-if="toastMessage" class="settings-toast" role="status" aria-live="polite">{{ toastMessage }}</div>
     </Transition>
