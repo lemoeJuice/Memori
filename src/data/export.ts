@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import { getAllEntries, getPhoto, getSettings, replaceAllData } from './database'
-import { DEFAULT_SETTINGS, type AppSettings, type ExportArchive, type MemoryEntry, type StoredPhoto } from './types'
+import { type AppSettings, type ExportArchive, type MemoryEntry, type StoredPhoto } from './types'
+import { normalizeSettings } from './settings'
 
 const MAX_IMPORT_BYTES = 250 * 1024 * 1024
 
@@ -95,7 +96,7 @@ export async function importBackup(file: File): Promise<number> {
       })
     }
   }
-  const settings: AppSettings = { ...DEFAULT_SETTINGS, ...(data.settings ?? {}) }
+  const settings: AppSettings = normalizeSettings(data.settings)
   if (settings.backgroundPhotoId && !photos.some((photo) => photo.id === settings.backgroundPhotoId)) {
     settings.backgroundPhotoId = undefined
   }

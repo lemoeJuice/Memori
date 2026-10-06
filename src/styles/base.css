@@ -113,6 +113,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .memory-card__no-photo { display: grid; place-items: center; height: 91px; margin: 8px 8px 0; border-radius: calc(var(--card-radius) - 8px); background: linear-gradient(135deg, #f3f6f2, #e9f0ee); color: #9ab3ae; }
 .memory-card__no-photo span { display: grid; place-items: center; width: 37px; height: 37px; border: 1px solid #ffffffdc; border-radius: 50%; background: #ffffff76; font-size: 17px; }
 .memory-card__copy { padding: 13px 16px 15px; }
+.memory-card--text-favorite .memory-card__copy { padding-right: 48px; }
 .memory-card__meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .location-mark { color: #7e9da2; font-size: 15px; line-height: 1; }
 .memory-card__place { color: #53727b; font-size: 11px; font-weight: 600; }
@@ -132,7 +133,9 @@ button:disabled { cursor: wait; opacity: .55; }
 .composer-card { overflow: hidden; padding: 16px; animation: unfold .22s ease-out; }
 .composer-topline { display: flex; align-items: center; justify-content: space-between; color: #729096; font-size: 10px; }
 .quiet-button { width: 28px; height: 28px; font-size: 20px; box-shadow: none; }
-.composer-time { margin: 3px 0 13px; color: #637f85; font-size: 13px; font-weight: 500; }
+.composer-time { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 3px 0 13px; color: #637f85; font-size: 13px; font-weight: 500; }
+.composer-time > span:first-child { flex: 0 0 auto; }
+.composer-location-status { min-width: 0; color: #789499; text-align: right; font-size: 9px; font-weight: 400; line-height: 1.5; }
 .composer-photo { position: relative; display: grid; place-items: center; min-height: 145px; overflow: hidden; border: 1px dashed #97b2b0a6; border-radius: 18px; background: linear-gradient(135deg, #f2f6f4, #eaf1ef); }
 .composer-photo--filled { min-height: 0; border-style: solid; border-color: #ffffff; }
 .composer-photo img { display: block; width: 100%; max-height: 275px; object-fit: cover; }
@@ -142,7 +145,8 @@ button:disabled { cursor: wait; opacity: .55; }
 .photo-tools button { padding: 6px 10px; border: 1px solid #ffffff93; border-radius: 14px; color: #52717a; background: #ffffffc9; cursor: pointer; font-size: 9px; backdrop-filter: blur(8px); }
 .location-line { display: flex; align-items: center; gap: 7px; margin: 12px 2px; color: #789499; font-size: 10px; }
 .location-icon { font-size: 16px; }
-.source-note { margin-left: auto; color: #9bacaa; font-size: 9px; }
+.location-line .toggle-input { margin-left: auto; }
+.photo-feedback { margin: 8px 2px; color: #b77e7e; font-size: 10px; }
 .editor-label { display: block; margin-top: 10px; color: #91a4a5; font-size: 9px; }
 .editor-label > span { display: block; margin-bottom: 5px; }
 .editor-label input, .editor-label textarea { display: block; width: 100%; padding: 10px 11px; border: 1px solid #8fa5a31b; border-radius: 12px; outline: 0; color: #49666d; background: #ffffff75; font-size: 10px; resize: vertical; }
@@ -270,6 +274,8 @@ button:disabled { cursor: wait; opacity: .55; }
 .settings-section-title p { margin: 4px 0 0; color: #9badae; font-size: 9px; }
 .setting-row { display: flex; min-height: 52px; align-items: center; justify-content: space-between; gap: 18px; padding: 9px 1px; border-top: 1px solid #78969a13; }
 .setting-copy { display: block; min-width: 0; }
+.setting-row--disabled { opacity: .6; }
+.setting-row :disabled { cursor: not-allowed; }
 .map-credential-row { padding: 10px 0; border-top: 1px solid #78969a13; }
 .map-credential-row label { display: block; margin-bottom: 7px; color: #647e82; font-size: 11px; }
 .map-credential-input { display: flex; align-items: center; gap: 8px; }
@@ -439,7 +445,7 @@ button:disabled { cursor: wait; opacity: .55; }
   .local-status { max-width: 104px; }
   .memory-grid { gap: 8px; }
   .memory-card__copy { padding-inline: 9px; }
-  .memory-card__time { width: 100%; margin-left: 20px; }
+  .location-mark ~ .memory-card__time { width: 100%; margin-left: 20px; }
   .composer-footer { align-items: end; }
 }
 @media (hover: none) {

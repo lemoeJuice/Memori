@@ -1,8 +1,20 @@
 import { readExifLocation } from './location'
 import * as exifr from 'exifr'
-import type { AppSettings, PhotoInput } from './types'
+import type { AppSettings, CompressionQuality, PhotoInput } from './types'
 
-export async function preparePhoto(file: File, settings: AppSettings): Promise<PhotoInput> {
+export interface PhotoDisplayArea { width: number; height: number; pixelRatio: number }
+
+const ENCODING_QUALITY: Record<CompressionQuality, number> = { compact: .65, balanced: .82, clear: .92 }
+
+export function thumbnailDimensions(width: number, height: number, display: PhotoDisplayArea) {
+  const visibleEdge = Math.max(1, display.width, display.height) * Math.max(1, display.pixelRatio)
+  const scale = Math.min(1, visibleEdge / Math.max(width, height))
+  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) }
+}
+
+export async function preparePhoto(file: File, settings: AppSettings, display: PhotoDisplayArea = {
+  width: window.innerWidth, height: window.innerHeight, pixelRatio: window.devicePixelRatio || 1,
+}): Promise<PhotoInput> {
   let bitmap: ImageBitmap | undefined
   let imageUrl: string | undefined
   try {
@@ -23,32 +35,35 @@ export async function preparePhoto(file: File, settings: AppSettings): Promise<P
       sourceWidth = image.naturalWidth
       sourceHeight = image.naturalHeight
     }
-    const scale = Math.min(1, settings.maxImageDimension / Math.max(sourceWidth, sourceHeight))
-    const width = Math.max(1, Math.round(sourceWidth * scale))
-    const height = Math.max(1, Math.round(sourceHeight * scale))
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const context = canvas.getContext('2d')
-    if (!context) throw new Error('无法处理这张照片')
-    context.drawImage(source, 0, 0, width, height)
-    const optimized = await canvasBlob(canvas, 'image/webp', settings.imageQuality / 100)
+    const thumbnailSize = thumbnailDimensions(sourceWidth, sourceHeight, display)
     const thumbnailCanvas = document.createElement('canvas')
-    const thumbnailScale = Math.min(1, 640 / Math.max(width, height))
-    thumbnailCanvas.width = Math.max(1, Math.round(width * thumbnailScale))
-    thumbnailCanvas.height = Math.max(1, Math.round(height * thumbnailScale))
+    thumbnailCanvas.width = thumbnailSize.width
+    thumbnailCanvas.height = thumbnailSize.height
     const thumbnailContext = thumbnailCanvas.getContext('2d')
     if (!thumbnailContext) throw new Error('无法生成照片缩略图')
-    thumbnailContext.drawImage(canvas, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height)
-    const thumbnail = await canvasBlob(thumbnailCanvas, 'image/webp', 0.78)
+    thumbnailContext.drawImage(source, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height)
+    const quality = ENCODING_QUALITY[settings.compressionQuality]
+    const thumbnail = await canvasBlob(thumbnailCanvas, 'image/webp', settings.compressPhotos ? quality : .82)
+    let original: Blob = file.slice(0, file.size, file.type)
+    if (settings.compressPhotos) {
+      const canvas = document.createElement('canvas')
+      canvas.width = sourceWidth
+      canvas.height = sourceHeight
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('无法处理这张照片')
+      context.drawImage(source, 0, 0, sourceWidth, sourceHeight)
+      const compressed = await canvasBlob(canvas, 'image/webp', quality)
+      // Don't grow an already compact image just to change its format.
+      if (compressed.size < file.size) original = compressed
+    }
     const exif = settings.readExif ? await readExifLocation(file) : undefined
     const exifTakenAt = settings.readExif ? await readExifDate(file) : undefined
     return {
       file,
       thumbnail,
-      original: settings.preserveOriginal ? file.slice(0, file.size, file.type) : optimized,
-      width,
-      height,
+      original,
+      width: sourceWidth,
+      height: sourceHeight,
       exifLocation: exif,
       exifTakenAt,
     }

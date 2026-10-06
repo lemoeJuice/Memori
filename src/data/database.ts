@@ -1,5 +1,5 @@
 import type { AppSettings, MemoryEntry, StoredPhoto } from './types'
-import { DEFAULT_SETTINGS } from './types'
+import { normalizeSettings } from './settings'
 
 const DATABASE_NAME = 'memori-local'
 const DATABASE_VERSION = 1
@@ -98,7 +98,10 @@ export async function saveMemory(entry: MemoryEntry, photo?: StoredPhoto): Promi
   const done = transactionDone(tx)
   const plainEntry: MemoryEntry = {
     ...entry,
-    photo: entry.photo ? { ...entry.photo } : undefined,
+    photo: entry.photo ? {
+      ...entry.photo,
+      exifLocation: entry.photo.exifLocation ? { ...entry.photo.exifLocation } : undefined,
+    } : undefined,
     location: entry.location ? { ...entry.location } : undefined,
   }
   if (photo) tx.objectStore(PHOTO_STORE).put({ ...photo })
@@ -159,7 +162,7 @@ export async function getSettings(): Promise<AppSettings> {
   const db = await openDatabase()
   const tx = db.transaction(SETTINGS_STORE, 'readonly')
   const saved = await requestResult(tx.objectStore(SETTINGS_STORE).get('app')) as Partial<AppSettings> | undefined
-  return { ...DEFAULT_SETTINGS, ...saved }
+  return normalizeSettings(saved)
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {

@@ -8,7 +8,10 @@ export interface GeoPoint {
 export interface PhotoRef {
   id: string
   exifTakenAt?: number
+  exifLocation?: Pick<GeoPoint, 'latitude' | 'longitude'>
 }
+
+export type CompressionQuality = 'compact' | 'balanced' | 'clear'
 
 export interface MemoryEntry {
   id: string
@@ -41,13 +44,9 @@ export interface AppSettings {
   glassBlur: number
   cornerRadius: number
   theme: 'light' | 'system'
-  imageQuality: number
-  preserveOriginal: boolean
-  maxImageDimension: number
+  compressPhotos: boolean
+  compressionQuality: CompressionQuality
   readExif: boolean
-  locationEnabled: boolean
-  preferExifLocation: boolean
-  currentLocationFallback: boolean
   showCoordinates: boolean
 }
 
@@ -59,13 +58,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   glassBlur: 18,
   cornerRadius: 24,
   theme: 'light',
-  imageQuality: 82,
-  preserveOriginal: true,
-  maxImageDimension: 2400,
+  compressPhotos: false,
+  compressionQuality: 'balanced',
   readExif: true,
-  locationEnabled: true,
-  preferExifLocation: true,
-  currentLocationFallback: true,
   showCoordinates: false,
 }
 

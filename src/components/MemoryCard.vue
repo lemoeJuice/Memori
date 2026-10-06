@@ -17,6 +17,7 @@ const confirmDelete = ref(false)
 const cardElement = ref<HTMLElement>()
 const photoUrl = ref('')
 const cardPhoto = computed(() => props.entry.photo?.id)
+const displayPlace = computed(() => props.entry.placeLabel?.trim() || (props.entry.location ? '请在地图页面查看' : ''))
 const date = computed(() => new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(props.entry.createdAt))
 let photoObserver: IntersectionObserver | undefined
 let disposed = false
@@ -64,16 +65,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <article ref="cardElement" class="memory-card glass-card" :class="{ 'memory-card--expanded': expanded }">
+  <article ref="cardElement" class="memory-card glass-card" :class="{ 'memory-card--expanded': expanded, 'memory-card--text-favorite': !entry.photo && entry.favorite }">
     <button class="memory-card__body" type="button" :aria-expanded="expanded" @click="expanded = !expanded">
       <img v-if="photoUrl" class="memory-card__photo" :src="photoUrl" alt="记忆照片" loading="lazy" />
-      <div v-else class="memory-card__no-photo" aria-hidden="true"><span><IconGlyph name="sparkle" :size="18" /></span></div>
+      <div v-else-if="entry.photo" class="memory-card__no-photo" aria-hidden="true"><span><IconGlyph name="sparkle" :size="18" /></span></div>
       <div class="memory-card__copy">
         <div class="memory-card__meta">
           <span v-if="entry.location" class="location-mark"><IconGlyph name="pin" :size="13" /></span>
-          <span v-if="entry.placeLabel" class="memory-card__place">{{ entry.placeLabel }}</span>
-          <span v-else-if="entry.location" class="memory-card__place">一点生活</span>
-          <span v-else class="memory-card__place">一段记忆</span>
+          <span v-if="displayPlace" class="memory-card__place">{{ displayPlace }}</span>
           <span class="memory-card__time">{{ date }}</span>
         </div>
         <p v-if="entry.text" class="memory-card__text">{{ entry.text }}</p>

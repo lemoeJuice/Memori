@@ -149,21 +149,21 @@ async function saveEntry(entry: MemoryEntry, photo?: StoredPhoto) {
   if (savingMemory.value) return
   savingMemory.value = true
   try {
-    let savedWithoutOriginal = false
+    let savedPreviewOnly = false
     try {
       await saveMemory(entry, photo)
     } catch (error) {
       const failureName = error instanceof DOMException ? error.name : ''
       if (!photo?.original || !['AbortError', 'QuotaExceededError'].includes(failureName)) throw error
       await saveMemory(entry, { ...photo, original: undefined })
-      savedWithoutOriginal = true
+      savedPreviewOnly = true
     }
     const existing = entries.value.findIndex((item) => item.id === entry.id)
     if (existing >= 0) entries.value.splice(existing, 1, entry)
     else entries.value.push(entry)
     editingId.value = undefined
     composerOpen.value = false
-    showNotice(savedWithoutOriginal ? '记忆已保存；设备空间有限，未保留原图。' : '这段记忆，已经好好收下了。')
+    showNotice(savedPreviewOnly ? '记忆已保存；设备空间有限，照片以轻量预览保存。' : '这段记忆，已经好好收下了。')
   } catch (error) {
     showNotice(error instanceof Error ? error.message : '保存失败，请稍后重试。')
   } finally {
@@ -384,7 +384,7 @@ function cardStyle(index: number) {
     </main>
 
     <MapView v-if="mapMounted && settings" v-show="view === 'map'" :settings="settings" @configure="view = 'settings'" />
-    <SettingsView v-if="view === 'settings' && settings" :settings="settings" @change="updateSettings" @background="updateBackground" @restored="afterRestore" />
+    <SettingsView v-if="view === 'settings' && settings" :settings="settings" :reduced-transparency="reducedTransparency" @change="updateSettings" @background="updateBackground" @restored="afterRestore" />
 
     <Transition name="toast"><div v-if="notice" class="toast-message">{{ notice }}</div></Transition>
     <div v-if="notice && !ready" class="startup-error">{{ notice }}</div>

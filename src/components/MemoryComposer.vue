@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { getPhoto } from '../data/database'
-import { getCurrentLocation } from '../data/location'
+import { readExifLocation } from '../data/location'
+import { useMemoryLocation } from '../composables/useMemoryLocation'
 import { preparePhoto } from '../data/photos'
 import { createId } from '../data/id'
-import type { AppSettings, GeoPoint, MemoryEntry, PhotoInput, StoredPhoto } from '../data/types'
+import type { AppSettings, MemoryEntry, PhotoInput, PhotoRef, StoredPhoto } from '../data/types'
 import IconGlyph from './IconGlyph.vue'
 
 const props = defineProps<{ settings: AppSettings; existing?: MemoryEntry; saving?: boolean }>()
@@ -14,97 +15,110 @@ const emit = defineEmits<{
 }>()
 
 const picker = ref<HTMLInputElement>()
+const composerElement = ref<HTMLElement>()
+const existingPhoto = ref<PhotoRef | undefined>(props.existing?.photo ? { ...props.existing.photo } : undefined)
 const photoInput = ref<PhotoInput>()
 const previewUrl = ref('')
 const placeLabel = ref(props.existing?.placeLabel ?? '')
 const text = ref(props.existing?.text ?? '')
-const location = ref<GeoPoint | undefined>(props.existing?.location)
-const locationStatus = ref(props.existing?.location ? '已记录位置' : '定位中…')
+const {
+  recordCurrentLocation, photoLocation, location, locationBusy, locationStatus,
+  setRecordCurrentLocation, setPhotoLocation, start: startLocation, dispose: disposeLocation,
+} = useMemoryLocation(props.existing)
 const photoBusy = ref(false)
+const photoError = ref('')
+const displayLocationStatus = computed(() => !recordCurrentLocation.value && photoBusy.value ? '正在读取照片信息…' : locationStatus.value)
 const createdAt = props.existing?.createdAt ?? Date.now()
 const isSaving = computed(() => props.saving ?? false)
 const formattedTime = computed(() => new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(createdAt))
-let locationRequestToken = 0
+let photoRequestToken = 0
+let disposed = false
 
-onMounted(async () => {
-  if (props.existing?.photo) {
-    const stored = await getPhoto(props.existing.photo.id)
-    if (stored) previewUrl.value = URL.createObjectURL(stored.thumbnail)
-  }
-  const hasExistingPhoto = Boolean(props.existing?.photo)
-  const allowCurrentLocation = !hasExistingPhoto || props.settings.currentLocationFallback
-  if (!location.value && props.settings.locationEnabled && allowCurrentLocation) {
-    await requestCurrentLocation()
-  } else if (!location.value && props.settings.locationEnabled) {
-    locationStatus.value = '未记录位置'
-  } else if (!props.settings.locationEnabled) {
-    locationStatus.value = '位置记录已关闭'
-  }
+onMounted(() => {
+  startLocation()
+  if (existingPhoto.value) void restorePhoto()
 })
 
-onBeforeUnmount(() => { if (previewUrl.value) URL.revokeObjectURL(previewUrl.value) })
+async function restorePhoto() {
+  const token = photoRequestToken
+  photoBusy.value = true
+  try {
+    const stored = await getPhoto(existingPhoto.value!.id)
+    if (!stored || disposed || token !== photoRequestToken) return
+    previewUrl.value = URL.createObjectURL(stored.thumbnail)
+    // Old entries may not have stored their photo GPS separately. Read it from
+    // the original only when EXIF reading is enabled; never relocate an edit.
+    if (!photoLocation.value && props.settings.readExif && stored.original) {
+      const file = new File([stored.original], stored.fileName, { type: stored.original.type })
+      const exif = await readExifLocation(file)
+      if (!disposed && token === photoRequestToken) setPhotoLocation(exif)
+    }
+  } catch {
+    if (!disposed && token === photoRequestToken) photoError.value = '暂时无法读取这张照片'
+  } finally {
+    if (!disposed && token === photoRequestToken) photoBusy.value = false
+  }
+}
+
+onBeforeUnmount(() => {
+  disposed = true
+  photoRequestToken++
+  disposeLocation()
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+})
 
 async function choosePhoto(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+  const token = ++photoRequestToken
   photoBusy.value = true
-  const requestToken = ++locationRequestToken
-  if (location.value?.source === 'current') location.value = undefined
-  locationStatus.value = props.settings.locationEnabled ? '正在读取照片位置…' : '位置记录已关闭'
+  photoError.value = ''
   try {
-    const prepared = await preparePhoto(file, props.settings)
+    const element = composerElement.value
+    const prepared = await preparePhoto(file, props.settings, {
+      width: element?.clientWidth || window.innerWidth,
+      height: Math.min(element?.closest('.wall-scroller')?.clientHeight || window.innerHeight, 275),
+      pixelRatio: window.devicePixelRatio || 1,
+    })
+    if (disposed || token !== photoRequestToken) return
     photoInput.value = prepared
+    setPhotoLocation(prepared.exifLocation)
     if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
     previewUrl.value = URL.createObjectURL(prepared.thumbnail)
-    if (props.settings.locationEnabled && props.settings.preferExifLocation && prepared.exifLocation) {
-      location.value = { ...prepared.exifLocation, source: 'exif' }
-      locationStatus.value = '已使用照片拍摄位置'
-    } else if (props.settings.locationEnabled && props.settings.currentLocationFallback) {
-      await requestCurrentLocation(requestToken)
-    } else if (props.settings.locationEnabled) {
-      location.value = undefined
-      locationStatus.value = '未记录位置'
-    }
   } catch (error) {
-    locationStatus.value = error instanceof Error ? error.message : '无法读取照片'
+    if (!disposed && token === photoRequestToken) photoError.value = error instanceof Error ? error.message : '无法读取照片'
   } finally {
-    photoBusy.value = false
-    if (picker.value) picker.value.value = ''
+    if (!disposed && token === photoRequestToken) {
+      photoBusy.value = false
+      if (picker.value) picker.value.value = ''
+    }
   }
 }
 
 function removePhoto() {
+  photoRequestToken++
+  photoBusy.value = false
+  photoError.value = ''
   photoInput.value = undefined
+  existingPhoto.value = undefined
+  setPhotoLocation(undefined)
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = ''
-  if (location.value?.source === 'exif') location.value = undefined
-  if (!location.value && props.settings.locationEnabled) void requestCurrentLocation()
-}
-
-async function requestCurrentLocation(token = ++locationRequestToken) {
-  if (!props.settings.locationEnabled) return
-  locationStatus.value = '正在定位…'
-  try {
-    const current = await getCurrentLocation()
-    if (token !== locationRequestToken || location.value?.source === 'exif') return
-    location.value = current
-    locationStatus.value = '已记录当前位置'
-  } catch {
-    if (token === locationRequestToken && location.value?.source !== 'exif') {
-      locationStatus.value = '未记录位置'
-    }
-  }
 }
 
 function save() {
-  if (props.saving || photoBusy.value) return
+  if (props.saving || photoBusy.value || locationBusy.value) return
   const id = props.existing?.id ?? createId()
-  const photoId = photoInput.value ? createId() : (props.existing?.photo && previewUrl.value ? props.existing.photo.id : undefined)
+  const photoId = photoInput.value ? createId() : existingPhoto.value?.id
   const entry: MemoryEntry = {
     id,
     createdAt,
     updatedAt: Date.now(),
-    photo: photoId ? { id: photoId, exifTakenAt: photoInput.value?.exifTakenAt ?? props.existing?.photo?.exifTakenAt } : undefined,
+    photo: photoId ? {
+      id: photoId,
+      exifTakenAt: photoInput.value ? photoInput.value.exifTakenAt : existingPhoto.value?.exifTakenAt,
+      exifLocation: photoLocation.value ? { ...photoLocation.value } : undefined,
+    } : undefined,
     location: location.value ? { ...location.value } : undefined,
     placeLabel: placeLabel.value.trim() || undefined,
     text: text.value.trim() || undefined,
@@ -125,12 +139,12 @@ function save() {
 </script>
 
 <template>
-  <article class="composer-card glass-card">
+  <article ref="composerElement" class="composer-card glass-card">
     <div class="composer-topline">
       <span>{{ existing ? '编辑这段记忆' : '此刻' }}</span>
       <button class="icon-button quiet-button" type="button" aria-label="收起编辑" @click="emit('cancel')"><IconGlyph name="close" :size="15" /></button>
     </div>
-    <p class="composer-time">{{ formattedTime }}</p>
+    <p class="composer-time"><span>{{ formattedTime }}</span><span class="composer-location-status" role="status">{{ displayLocationStatus }}</span></p>
     <div class="composer-photo" :class="{ 'composer-photo--filled': previewUrl }">
       <img v-if="previewUrl" :src="previewUrl" alt="照片预览" />
       <button v-else class="photo-prompt" type="button" :disabled="photoBusy" @click="picker?.click()">
@@ -143,7 +157,8 @@ function save() {
       </div>
     </div>
     <input ref="picker" class="visually-hidden" type="file" accept="image/*" @change="choosePhoto" />
-    <div class="location-line"><span class="location-icon"><IconGlyph name="pin" :size="15" /></span><span>{{ locationStatus }}</span><span v-if="location?.source === 'exif'" class="source-note">来自照片</span></div>
+    <p v-if="photoError" class="photo-feedback" role="alert">{{ photoError }}</p>
+    <label class="location-line"><span class="location-icon"><IconGlyph name="pin" :size="15" /></span><span>记录当前位置</span><input v-model="recordCurrentLocation" class="toggle-input" type="checkbox" @change="setRecordCurrentLocation(recordCurrentLocation)" /></label>
     <label class="editor-label">
       <span>地点</span>
       <input v-model="placeLabel" type="text" maxlength="100" placeholder="给这个地方起个名字 · 可选" />
@@ -154,7 +169,7 @@ function save() {
     </label>
     <div class="composer-footer">
       <span class="optional-note">时间和地点之外，其余都可以留白</span>
-      <button class="save-button" type="button" :disabled="isSaving || photoBusy" @click="save">{{ isSaving ? '正在保存…' : '保存记忆' }} <IconGlyph v-if="!isSaving" name="arrow-up-right" :size="13" /></button>
+      <button class="save-button" type="button" :disabled="isSaving || photoBusy || locationBusy" @click="save">{{ isSaving ? '正在保存…' : '保存记忆' }} <IconGlyph v-if="!isSaving" name="arrow-up-right" :size="13" /></button>
     </div>
   </article>
 </template>
