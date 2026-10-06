@@ -133,9 +133,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .composer-card { overflow: hidden; padding: 16px; animation: unfold .22s ease-out; }
 .composer-topline { display: flex; align-items: center; justify-content: space-between; color: #729096; font-size: 10px; }
 .quiet-button { width: 28px; height: 28px; font-size: 20px; box-shadow: none; }
-.composer-time { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 3px 0 13px; color: #637f85; font-size: 13px; font-weight: 500; }
-.composer-time > span:first-child { flex: 0 0 auto; }
-.composer-location-status { min-width: 0; color: #789499; text-align: right; font-size: 9px; font-weight: 400; line-height: 1.5; }
+.composer-time { margin: 3px 0 13px; color: #637f85; font-size: 13px; font-weight: 500; }
 .composer-photo { position: relative; display: grid; place-items: center; min-height: 145px; overflow: hidden; border: 1px dashed #97b2b0a6; border-radius: 18px; background: linear-gradient(135deg, #f2f6f4, #eaf1ef); }
 .composer-photo--filled { min-height: 0; border-style: solid; border-color: #ffffff; }
 .composer-photo img { display: block; width: 100%; max-height: 275px; object-fit: cover; }
@@ -145,7 +143,8 @@ button:disabled { cursor: wait; opacity: .55; }
 .photo-tools button { padding: 6px 10px; border: 1px solid #ffffff93; border-radius: 14px; color: #52717a; background: #ffffffc9; cursor: pointer; font-size: 9px; backdrop-filter: blur(8px); }
 .location-line { display: flex; align-items: center; gap: 7px; margin: 12px 2px; color: #789499; font-size: 10px; }
 .location-icon { font-size: 16px; }
-.location-line .toggle-input { margin-left: auto; }
+.composer-location-status { min-width: 0; color: #789499; font-size: 9px; line-height: 1.5; }
+.location-toggle { display: flex; flex: 0 0 auto; align-items: center; gap: 7px; margin-left: auto; color: #789499; white-space: nowrap; }
 .photo-feedback { margin: 8px 2px; color: #b77e7e; font-size: 10px; }
 .editor-label { display: block; margin-top: 10px; color: #91a4a5; font-size: 9px; }
 .editor-label > span { display: block; margin-bottom: 5px; }

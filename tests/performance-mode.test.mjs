@@ -48,3 +48,11 @@ test('reduced motion affects animations only, leaving transparency independent',
   assert.match(motion, /animation: none/)
   assert.doesNotMatch(motion, /backdrop-filter|background-color|--glass-opacity|filter:/)
 })
+
+test('disabled visual controls keep showing their saved draft values', () => {
+  for (const key of ['backgroundBlur', 'glassOpacity', 'glassBlur']) {
+    assert.ok(settings.includes(`v-model.number="draft.${key}" :disabled="limitedVisuals"`))
+    assert.ok(settings.includes(`<output>{{ draft.${key} }}`))
+  }
+  assert.doesNotMatch(settings, /visualRange|(?:backgroundBlur|glassOpacity|glassBlur)Setting/)
+})

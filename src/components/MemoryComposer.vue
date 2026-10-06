@@ -144,7 +144,7 @@ function save() {
       <span>{{ existing ? '编辑这段记忆' : '此刻' }}</span>
       <button class="icon-button quiet-button" type="button" aria-label="收起编辑" @click="emit('cancel')"><IconGlyph name="close" :size="15" /></button>
     </div>
-    <p class="composer-time"><span>{{ formattedTime }}</span><span class="composer-location-status" role="status">{{ displayLocationStatus }}</span></p>
+    <p class="composer-time">{{ formattedTime }}</p>
     <div class="composer-photo" :class="{ 'composer-photo--filled': previewUrl }">
       <img v-if="previewUrl" :src="previewUrl" alt="照片预览" />
       <button v-else class="photo-prompt" type="button" :disabled="photoBusy" @click="picker?.click()">
@@ -158,7 +158,11 @@ function save() {
     </div>
     <input ref="picker" class="visually-hidden" type="file" accept="image/*" @change="choosePhoto" />
     <p v-if="photoError" class="photo-feedback" role="alert">{{ photoError }}</p>
-    <label class="location-line"><span class="location-icon"><IconGlyph name="pin" :size="15" /></span><span>记录当前位置</span><input v-model="recordCurrentLocation" class="toggle-input" type="checkbox" @change="setRecordCurrentLocation(recordCurrentLocation)" /></label>
+    <div class="location-line">
+      <span class="location-icon"><IconGlyph name="pin" :size="15" /></span>
+      <span class="composer-location-status" role="status">{{ displayLocationStatus }}</span>
+      <label class="location-toggle"><span>记录当前位置</span><input v-model="recordCurrentLocation" class="toggle-input" type="checkbox" @change="setRecordCurrentLocation(recordCurrentLocation)" /></label>
+    </div>
     <label class="editor-label">
       <span>地点</span>
       <input v-model="placeLabel" type="text" maxlength="100" placeholder="给这个地方起个名字 · 可选" />

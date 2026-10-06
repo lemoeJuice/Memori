@@ -142,9 +142,10 @@ test('disposing during a GPS request prevents late coordinate updates', async ()
 test('settings disable overridden visuals and compression presets without exposing old policies', async () => {
   const source = await readFile('src/components/SettingsView.vue', 'utf8')
   for (const field of ['backgroundBlur', 'glassOpacity', 'glassBlur']) {
-    assert.match(source, new RegExp(`v-model.number="${field}Setting"[^>]+:disabled="limitedVisuals"`))
+    assert.match(source, new RegExp(`v-model.number="draft\\.${field}" :disabled="limitedVisuals"`))
+    assert.ok(source.includes(`<output>{{ draft.${field} }}`))
   }
-  assert.match(source, /if \(!limitedVisuals\.value\) draft\.value\[key\] = value/)
+  assert.doesNotMatch(source, /visualRange|(?:backgroundBlur|glassOpacity|glassBlur)Setting/)
   assert.match(source, /draft\.value\.performanceMode \|\| props\.reducedTransparency/)
   assert.equal(source.match(/:disabled="!draft\.compressPhotos"/g)?.length, 3)
   assert.doesNotMatch(source, /draft\.(?:preserveOriginal|imageQuality|maxImageDimension|locationEnabled|preferExifLocation|currentLocationFallback|showCoordinates)/)

@@ -19,15 +19,6 @@ const emit = defineEmits<{
 }>()
 const draft = ref<AppSettings>({ ...props.settings })
 const limitedVisuals = computed(() => Boolean(draft.value.performanceMode || props.reducedTransparency))
-function visualRange(key: 'backgroundBlur' | 'glassOpacity' | 'glassBlur', reducedValue: (value: number) => number) {
-  return computed({
-    get: () => limitedVisuals.value ? reducedValue(draft.value[key]) : draft.value[key],
-    set: (value: number) => { if (!limitedVisuals.value) draft.value[key] = value },
-  })
-}
-const backgroundBlurSetting = visualRange('backgroundBlur', value => Math.min(value, 4))
-const glassOpacitySetting = visualRange('glassOpacity', value => Math.max(value, 90))
-const glassBlurSetting = visualRange('glassBlur', () => 0)
 const mapDraft = ref({ ...mapSettings.value })
 const showMapKey = ref(false)
 const showSecurityCode = ref(false)
@@ -280,10 +271,10 @@ function formatBytes(bytes: number): string {
           <input ref="backgroundPicker" class="visually-hidden" type="file" accept="image/*" @change="chooseBackground" />
         </div>
       </div>
-      <label class="setting-row range-row" :class="{ 'setting-row--disabled': limitedVisuals }"><span class="setting-copy"><strong>背景柔和度</strong><small>{{ limitedVisuals ? '已使用轻量柔化，暂不调整' : '让照片背景更轻盈' }}</small></span><span class="range-control"><input v-model.number="backgroundBlurSetting" :disabled="limitedVisuals" type="range" min="0" max="18" step="1" @change="persist" /><output>{{ backgroundBlurSetting }} px</output></span></label>
+      <label class="setting-row range-row" :class="{ 'setting-row--disabled': limitedVisuals }"><span class="setting-copy"><strong>背景柔和度</strong><small>{{ limitedVisuals ? '性能模式下暂不可调整' : '让照片背景更轻盈' }}</small></span><span class="range-control"><input v-model.number="draft.backgroundBlur" :disabled="limitedVisuals" type="range" min="0" max="18" step="1" @change="persist" /><output>{{ draft.backgroundBlur }} px</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>背景明度</strong><small>调整背景上的柔光</small></span><span class="range-control"><input v-model.number="draft.backgroundDim" type="range" min="0" max="55" step="1" @change="persist" /><output>{{ draft.backgroundDim }}%</output></span></label>
-      <label class="setting-row range-row" :class="{ 'setting-row--disabled': limitedVisuals }"><span class="setting-copy"><strong>卡片透明度</strong><small>{{ limitedVisuals ? '已优先保证内容清晰，暂不调整' : '调节卡片与背景的融合感' }}</small></span><span class="range-control"><input v-model.number="glassOpacitySetting" :disabled="limitedVisuals" type="range" min="40" max="96" step="1" @change="persist" /><output>{{ glassOpacitySetting }}%</output></span></label>
-      <label class="setting-row range-row" :class="{ 'setting-row--disabled': limitedVisuals }"><span class="setting-copy"><strong>卡片模糊度</strong><small>{{ limitedVisuals ? '当前已减少模糊，暂不调整' : '调整卡片后的柔焦程度' }}</small></span><span class="range-control"><input v-model.number="glassBlurSetting" :disabled="limitedVisuals" type="range" min="0" max="32" step="1" @change="persist" /><output>{{ glassBlurSetting }} px</output></span></label>
+      <label class="setting-row range-row" :class="{ 'setting-row--disabled': limitedVisuals }"><span class="setting-copy"><strong>卡片透明度</strong><small>{{ limitedVisuals ? '性能模式下暂不可调整' : '调节卡片与背景的融合感' }}</small></span><span class="range-control"><input v-model.number="draft.glassOpacity" :disabled="limitedVisuals" type="range" min="40" max="96" step="1" @change="persist" /><output>{{ draft.glassOpacity }}%</output></span></label>
+      <label class="setting-row range-row" :class="{ 'setting-row--disabled': limitedVisuals }"><span class="setting-copy"><strong>卡片模糊度</strong><small>{{ limitedVisuals ? '性能模式下暂不可调整' : '调整卡片后的柔焦程度' }}</small></span><span class="range-control"><input v-model.number="draft.glassBlur" :disabled="limitedVisuals" type="range" min="0" max="32" step="1" @change="persist" /><output>{{ draft.glassBlur }} px</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>卡片圆角</strong><small>柔软或更利落一点</small></span><span class="range-control"><input v-model.number="draft.cornerRadius" type="range" min="14" max="34" step="1" @change="persist" /><output>{{ draft.cornerRadius }} px</output></span></label>
       <div class="setting-row"><span class="setting-copy"><strong>主题模式</strong><small>保持明亮，或跟随设备</small></span><div class="segmented-control"><button :class="{ selected: draft.theme === 'light' }" @click="draft.theme = 'light'; persist()">浅色</button><button :class="{ selected: draft.theme === 'system' }" @click="draft.theme = 'system'; persist()">跟随设备</button></div></div>
       <label class="setting-row"><span class="setting-copy"><strong>性能模式</strong><small>减少模糊和动态效果，在性能较弱的设备上提升流畅度</small></span><input class="toggle-input" v-model="draft.performanceMode" type="checkbox" @change="persist" /></label>
