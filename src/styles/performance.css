@@ -1,0 +1,63 @@
+/* Loaded after base.css. Saved visual variables stay untouched so switching
+   off restores the user's glass and wallpaper settings without a reload. */
+.app-frame {
+  --reduced-surface-rgb: 255 255 255;
+  --reduced-header-rgb: 237 244 244;
+  --reduced-shadow: 0 2px 8px #68858a10;
+}
+@media (prefers-color-scheme: dark) {
+  .app-frame[data-theme="system"] {
+    --reduced-surface-rgb: 39 56 57;
+    --reduced-header-rgb: 32 46 48;
+    --reduced-shadow: 0 2px 8px #101b1c24;
+  }
+}
+
+/* The root's reduced-transparency class follows the system media preference,
+   independently of the persisted performance-mode switch. */
+.app-frame:is(.performance-mode, .reduced-transparency) :is(.glass-card, .today-note, .main-nav, .app-header, .photo-tools button, .cluster-heading, .settings-toast, .toast-message),
+.app-frame:is(.performance-mode, .reduced-transparency) .mobile-nav::before {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.app-frame:is(.performance-mode, .reduced-transparency) :is(.glass-card, .today-note, .main-nav),
+.app-frame:is(.performance-mode, .reduced-transparency) .mobile-nav::before {
+  background-color: rgb(var(--reduced-surface-rgb) / max(.9, var(--glass-opacity)));
+  box-shadow: var(--reduced-shadow);
+}
+.app-frame:is(.performance-mode, .reduced-transparency) .app-header {
+  background: rgb(var(--reduced-header-rgb) / .96);
+}
+/* These controls keep their existing light foreground/background pairing,
+   including in system dark mode. */
+.app-frame:is(.performance-mode, .reduced-transparency) :is(.photo-tools button, .cluster-heading, .settings-toast, .toast-message) {
+  background-color: rgb(255 255 255 / .96);
+  box-shadow: var(--reduced-shadow);
+}
+.app-frame:is(.performance-mode, .reduced-transparency) :is(.brand-mark, .avatar-button, .icon-button, .settings-head-mark, .background-preview, .placeholder-view > span, .save-button) {
+  box-shadow: var(--reduced-shadow);
+}
+.app-frame:is(.performance-mode, .reduced-transparency) .map-view,
+.app-frame:is(.performance-mode, .reduced-transparency)::after {
+  box-shadow: none;
+}
+.app-frame:is(.performance-mode, .reduced-transparency) .wallpaper-layer {
+  /* Keep the wallpaper and its dim overlay; cap the full-screen blur only. */
+  filter: blur(min(var(--background-blur), 4px));
+  transition: none;
+}
+
+/* Remove staggered list entrances, not short feedback/interaction animations. */
+.app-frame.performance-mode .memory-card { animation: none; }
+
+/* Motion preferences do not change transparency, blur or saved settings.
+   Native edge snapping is left to the browser in all modes. */
+@media (prefers-reduced-motion: reduce) {
+  .app-frame :is(.memory-card, .composer-card, .memory-card__actions) { animation: none; }
+  .app-frame .toggle-input::after,
+  .app-frame :is(.memory-card, .new-memory-card, .main-nav button, .toggle-input, .mobile-nav button,
+    .map-search-expand-enter-active, .map-search-expand-leave-active,
+    .map-panel-enter-active, .map-panel-leave-active,
+    .settings-toast-enter-active, .settings-toast-leave-active,
+    .toast-enter-active, .toast-leave-active) { transition-duration: .01ms; }
+}

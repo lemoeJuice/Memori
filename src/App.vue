@@ -27,6 +27,11 @@ const notice = ref('')
 const wallpaperUrl = ref('')
 const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
 const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)')
+const transparencyPreference = window.matchMedia('(prefers-reduced-transparency: reduce)')
+const reducedTransparency = ref(transparencyPreference.matches)
+function syncTransparencyPreference() {
+  reducedTransparency.value = transparencyPreference.matches
+}
 let observer: IntersectionObserver | undefined
 let didSetInitialPosition = false
 let wallpaperObjectUrl = ''
@@ -85,12 +90,14 @@ watch(view, (current) => {
 onBeforeUnmount(() => {
   observer?.disconnect()
   systemColorScheme.removeEventListener('change', syncThemeColor)
+  transparencyPreference.removeEventListener('change', syncTransparencyPreference)
   if (noticeTimer) window.clearTimeout(noticeTimer)
   if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl)
 })
 
 onMounted(async () => {
   systemColorScheme.addEventListener('change', syncThemeColor)
+  transparencyPreference.addEventListener('change', syncTransparencyPreference)
   syncThemeColor()
   try {
     const [page, savedSettings] = await Promise.all([getEntriesPage(undefined, 40), getSettings()])
@@ -292,7 +299,7 @@ function cardStyle(index: number) {
 </script>
 
 <template>
-  <div class="app-frame" :class="{ 'has-wallpaper': wallpaperUrl }" :data-theme="settings?.theme ?? 'light'" :style="wallStyle">
+  <div class="app-frame" :class="{ 'has-wallpaper': wallpaperUrl, 'performance-mode': settings?.performanceMode, 'reduced-transparency': reducedTransparency }" :data-theme="settings?.theme ?? 'light'" :style="wallStyle">
     <div v-if="wallpaperUrl" class="wallpaper-layer" :style="{ backgroundImage: `linear-gradient(rgb(237 244 244 / var(--background-dim)), rgb(237 244 244 / var(--background-dim))), url(${wallpaperUrl})` }" aria-hidden="true"></div>
     <header class="app-header">
       <a class="brand" href="#wall" @click.prevent="view = 'wall'">

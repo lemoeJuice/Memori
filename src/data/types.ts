@@ -33,6 +33,7 @@ export interface StoredPhoto {
 }
 
 export interface AppSettings {
+  performanceMode: boolean
   backgroundPhotoId?: string
   backgroundDim: number
   backgroundBlur: number
@@ -51,6 +52,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  performanceMode: false,
   backgroundDim: 8,
   backgroundBlur: 0,
   glassOpacity: 69,

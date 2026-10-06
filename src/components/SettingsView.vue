@@ -276,6 +276,7 @@ function formatBytes(bytes: number): string {
       <label class="setting-row range-row"><span class="setting-copy"><strong>卡片模糊度</strong><small>调整卡片后的柔焦程度</small></span><span class="range-control"><input v-model.number="draft.glassBlur" type="range" min="0" max="32" step="1" @change="persist" /><output>{{ draft.glassBlur }} px</output></span></label>
       <label class="setting-row range-row"><span class="setting-copy"><strong>卡片圆角</strong><small>柔软或更利落一点</small></span><span class="range-control"><input v-model.number="draft.cornerRadius" type="range" min="14" max="34" step="1" @change="persist" /><output>{{ draft.cornerRadius }} px</output></span></label>
       <div class="setting-row"><span class="setting-copy"><strong>主题模式</strong><small>保持明亮，或跟随设备</small></span><div class="segmented-control"><button :class="{ selected: draft.theme === 'light' }" @click="draft.theme = 'light'; persist()">浅色</button><button :class="{ selected: draft.theme === 'system' }" @click="draft.theme = 'system'; persist()">跟随设备</button></div></div>
+      <label class="setting-row"><span class="setting-copy"><strong>性能模式</strong><small>减少模糊和动态效果，在性能较弱的设备上提升流畅度</small></span><input class="toggle-input" v-model="draft.performanceMode" type="checkbox" @change="persist" /></label>
         </section>
 
         <section class="settings-section glass-card">
