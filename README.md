@@ -13,6 +13,12 @@ To enable Memory Map, open **Settings → 地图服务**, enter your own AMap We
 
 Map credentials are BYOK and stored only in this browser's localStorage, separately from memories and backups. They are not uploaded to Memori. Map loading uses them in requests to AMap or the configured proxy. Direct browser use of `securityJsCode` is visible to the current user in DevTools. An optional `serviceHost` (for example `https://your-proxy.example.com/_AMapService`) takes priority and lets your proxy hide the security code. No map backend is required for this release; if Memori later supplies shared project credentials, a default proxy should be considered. Never commit real credentials. The AMap adapter is isolated under `src/map`; raw coordinates in IndexedDB remain WGS84 and are converted only for map display.
 
+Before using AMap, review the [AMap Open Platform Service Agreement](https://lbs.amap.com/pages/terms) and check your account console for the applicable service purpose and quotas. Any commercial use or authorization requirements depend on your account and the current terms; see [AMap commercial cooperation](https://lbs.amap.com/cooperation/cooperation/).
+
+## License
+
+Memori is licensed under the GNU General Public License v3.0 only. See [LICENSE](LICENSE) for the complete license text.
+
 ## Build
 
 ```sh

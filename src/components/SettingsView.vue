@@ -311,6 +311,7 @@ function formatBytes(bytes: number): string {
             </div>
             <p class="backup-hint">配置仅保存在当前浏览器，不上传到 Memori，也不随记忆备份导出或恢复。测试和使用地图时，凭据会用于向高德或你配置的代理发起请求。</p>
             <p class="backup-hint">securityJsCode 是高德 Web JS API 安全校验密钥。直接使用时可在 DevTools 中看到；serviceHost 代理可隐藏该密钥。当前无需自行部署后端，未填代理时使用本地密钥。</p>
+            <p class="backup-hint">使用前请阅读<a href="https://lbs.amap.com/pages/terms" target="_blank" rel="noopener noreferrer">高德地图开放平台服务协议</a>；服务用途、配额及商业授权要求以你的账号和当前条款为准，可查看<a href="https://lbs.amap.com/cooperation/cooperation/" target="_blank" rel="noopener noreferrer">高德商务合作说明</a>。</p>
             <div class="backup-actions"><button class="soft-button primary-soft" type="submit" :disabled="testingMap">保存配置</button><button class="soft-button" type="button" :disabled="testingMap" @click="testMap">{{ testingMap ? '测试中…' : '测试配置' }}</button></div>
             <p v-if="mapFeedback" class="version-status" role="status" aria-live="polite">{{ mapFeedback }}</p>
           </form>
